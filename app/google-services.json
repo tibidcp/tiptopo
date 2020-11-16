@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "976532105199",
+    "firebase_url": "https://tiptopo.firebaseio.com",
+    "project_id": "tiptopo",
+    "storage_bucket": "tiptopo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976532105199:android:0f7e90c91a7d7c27c2381a",
+        "android_client_info": {
+          "package_name": "com.tibi.tiptopo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "976532105199-3ep4lila9ab2m5ov672n47sv3butjbt4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOxXKSri_daUspHDu6YtKB6KV2qTKM9t4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "976532105199-3ep4lila9ab2m5ov672n47sv3butjbt4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
