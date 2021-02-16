@@ -3,11 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/navigation"
-    app:startDestination="@id/mapFragment">
-
+    app:startDestination="@id/loginFragment">
     <fragment
-        android:id="@+id/mapFragment"
-        android:name="com.tibi.tiptopo.MapFragment"
-        android:label="fragment_map"
-        tools:layout="@layout/fragment_map" />
+        android:id="@+id/loginFragment"
+        android:name="com.tibi.tiptopo.LoginFragment"
+        android:label="fragment_login"
+        tools:layout="@layout/fragment_login" />
 </navigation>
