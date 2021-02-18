@@ -58,6 +58,8 @@ dependencies {
 
     // ViewModel and LiveData
     implementation "androidx.lifecycle:lifecycle-extensions:2.2.0"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.0"
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0'
 
     implementation platform('com.google.firebase:firebase-bom:26.1.0')
     implementation 'com.firebaseui:firebase-ui-auth:6.3.0'

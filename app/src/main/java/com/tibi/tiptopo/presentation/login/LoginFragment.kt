@@ -60,6 +60,12 @@ class LoginFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         navController = findNavController()
+
+        viewModel.authenticationState.observe(viewLifecycleOwner) { state ->
+            if (state == FirebaseUserLiveData.AuthenticationState.AUTHENTICATED) {
+                navController.navigate(LoginFragmentDirections.actionLoginFragmentToMapFragment())
+            }
+        }
     }
 
     private fun launchSignInFlow() {
