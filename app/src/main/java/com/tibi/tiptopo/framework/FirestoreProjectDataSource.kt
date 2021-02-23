@@ -16,16 +16,16 @@ class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
     private val path = "users/${Firebase.auth.currentUser?.uid!!}/projects"
 
     override suspend fun addProject(project: Project): Resource<Project> {
-        firestore.collection(path)
-            .document(project.name)
-            .set(project)
-            .await()
+        val doc = firestore.collection(path)
+            .document()
+        project.id = doc.id
+        doc.set(project).await()
         return Resource.Success(project)
     }
 
-    override suspend fun getProject(name: String): Resource<Project> {
+    override suspend fun getProject(project: Project): Resource<Project> {
         val result = firestore.collection(path)
-            .document(name)
+            .document(project.id)
             .get()
             .await()
         return Resource.Success(result.toObject()!!)
@@ -33,13 +33,13 @@ class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
 
     override suspend fun updateProject(project: Project) = addProject(project)
 
-    override suspend fun getAllProjects(): Resource<MutableList<Project>> {
+    override suspend fun getAllProjects(): Resource<List<Project>> {
         val result = firestore
             .collection(path)
             .get()
             .await()
             .map { it.toObject<Project>() }
-            .toMutableList()
+            .toList()
 
         return Resource.Success(result)
     }
