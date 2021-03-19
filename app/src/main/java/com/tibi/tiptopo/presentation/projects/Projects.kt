@@ -5,7 +5,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.platform.LocalContext
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData.AuthenticationState.AUTHENTICATED
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData.AuthenticationState.UNAUTHENTICATED
