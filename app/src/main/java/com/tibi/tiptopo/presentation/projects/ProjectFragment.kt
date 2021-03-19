@@ -1,4 +1,4 @@
-package com.tibi.tiptopo.presentation.project
+package com.tibi.tiptopo.presentation.projects
 
 import androidx.fragment.app.Fragment
 import dagger.hilt.android.AndroidEntryPoint
