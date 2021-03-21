@@ -8,7 +8,9 @@ import com.tibi.core.data.ProjectRepository
 import com.tibi.core.data.Resource
 import com.tibi.core.domain.Project
 import junit.framework.TestCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineDispatcher
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -21,11 +23,14 @@ interface RetrofitApiService {
     suspend fun clearDb()
 }
 
+
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class FirestoreProjectDataSourceTest : TestCase() {
 
+    private val testDispatcher = TestCoroutineDispatcher()
     private val dataSource: ProjectDataSource = FirestoreProjectDataSource()
-    private val repository: ProjectRepository = ProjectRepository(dataSource)
+    private val repository: ProjectRepository = ProjectRepository(testDispatcher, dataSource)
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("http://10.0.2.2:8080/emulator/v1/projects/tiptopo/databases/(default)/")
@@ -55,7 +60,7 @@ class FirestoreProjectDataSourceTest : TestCase() {
 
     @After
     fun after() {
-        runBlocking {
+        runBlocking{
             retrofit.clearDb()
         }
     }
@@ -65,7 +70,7 @@ class FirestoreProjectDataSourceTest : TestCase() {
         val project = Project(name = "name", date = 111L)
         val expected = Resource.Success(project)
 
-        runBlocking {
+        runBlocking{
             val result = repository.addProject(project)
             if (result is Resource.Success) {
                 project.id = result.data.id
@@ -79,7 +84,7 @@ class FirestoreProjectDataSourceTest : TestCase() {
         val project = Project(name = "name", date = 111L)
         val expected = Resource.Success(project)
 
-        runBlocking {
+        runBlocking{
             val added = repository.addProject(project)
             if (added is Resource.Success) {
                 project.id = added.data.id
@@ -95,7 +100,7 @@ class FirestoreProjectDataSourceTest : TestCase() {
         val projectExpected = Project(name = "name", date = 555L)
         val expected = Resource.Success(projectExpected)
 
-        runBlocking {
+        runBlocking{
             val added = repository.addProject(project)
             if (added is Resource.Success) {
                 projectExpected.id = added.data.id
@@ -111,7 +116,7 @@ class FirestoreProjectDataSourceTest : TestCase() {
         val project2 = Project(name = "name2", date = 555L)
         val expected = Resource.Success(mutableListOf(project1, project2))
 
-        runBlocking {
+        runBlocking{
             val added1 = repository.addProject(project1)
             if (added1 is Resource.Success) {
                 project1.id = added1.data.id
