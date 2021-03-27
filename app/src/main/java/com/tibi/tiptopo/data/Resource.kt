@@ -1,4 +1,4 @@
-package com.tibi.core.data
+package com.tibi.tiptopo.data
 
 sealed class Resource<out T> {
     class Loading<out T> : Resource<T>()

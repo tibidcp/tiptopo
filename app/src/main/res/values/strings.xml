@@ -3,4 +3,10 @@
     <string name="title_activity_maps">Map</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
+    <string name="projects">Projects</string>
+    <string name="logout_description">Logout button</string>
+    <string name="add_project_description">Add project button</string>
+    <string name="add">Add</string>
+    <string name="project_name">Project name</string>
+    <string name="error">Error</string>
 </resources>

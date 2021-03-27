@@ -2,7 +2,7 @@ package com.tibi.tiptopo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,8 +25,14 @@ object MainDestinations {
     const val ProjectIdKey = "projectId"
 }
 
+@ExperimentalComposeUiApi
 @Composable
-fun NavGraph(startDestination: String = MainDestinations.LoginRoute) {
+fun NavGraph(
+    loginViewModel: LoginViewModel,
+    projectsViewModel: ProjectsViewModel,
+    mapViewModel: MapViewModel,
+    startDestination: String = MainDestinations.LoginRoute
+) {
     val navController = rememberNavController()
 
     val actions = remember(navController) { MainActions(navController) }
@@ -35,11 +41,9 @@ fun NavGraph(startDestination: String = MainDestinations.LoginRoute) {
         startDestination = startDestination
     ) {
         composable(MainDestinations.LoginRoute) {
-            val loginViewModel: LoginViewModel = viewModel()
             Login(loginViewModel, onLoginComplete = actions.onLoginComplete)
         }
         composable(MainDestinations.ProjectsRoute) {
-            val projectsViewModel: ProjectsViewModel = viewModel()
             Projects(
                 projectsViewModel = projectsViewModel,
                 selectProject = actions.selectProject,
@@ -51,7 +55,6 @@ fun NavGraph(startDestination: String = MainDestinations.LoginRoute) {
             arguments = listOf(navArgument(ProjectIdKey) { type = NavType.StringType })
             ) { backStackEntry ->
             val arguments = requireNotNull(backStackEntry.arguments)
-            val mapViewModel: MapViewModel = viewModel()
             Map(
                 mapViewModel = mapViewModel,
                 projectId = arguments.getString(ProjectIdKey, ""),

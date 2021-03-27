@@ -3,12 +3,13 @@ package com.tibi.tiptopo.framework
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.tibi.core.data.ProjectDataSource
-import com.tibi.core.data.ProjectRepository
-import com.tibi.core.data.Resource
-import com.tibi.core.domain.Project
+import com.tibi.tiptopo.data.Resource
+import com.tibi.tiptopo.data.project.ProjectDataSource
+import com.tibi.tiptopo.data.project.ProjectRepository
+import com.tibi.tiptopo.domain.Project
 import junit.framework.TestCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import org.junit.After
@@ -22,7 +23,6 @@ interface RetrofitApiService {
     @DELETE("documents")
     suspend fun clearDb()
 }
-
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -60,73 +60,76 @@ class FirestoreProjectDataSourceTest : TestCase() {
 
     @After
     fun after() {
-        runBlocking{
+        runBlocking {
             retrofit.clearDb()
         }
     }
 
     @Test
     fun addProjectTest() {
-        val project = Project(name = "name", date = 111L)
-        val expected = Resource.Success(project)
+        val project = Project(name = "name")
+        val expectedName = "name"
+        var resultName = ""
 
-        runBlocking{
+        runBlocking {
             val result = repository.addProject(project)
             if (result is Resource.Success) {
-                project.id = result.data.id
+                resultName = result.data.name
             }
-            assertEquals(expected, result)
+            assertEquals(expectedName, resultName)
         }
     }
 
     @Test
     fun getProjectTest() {
-        val project = Project(name = "name", date = 111L)
-        val expected = Resource.Success(project)
+        val project = Project(name = "name")
+        val expectedName = "name"
+        var resultName = ""
 
-        runBlocking{
-            val added = repository.addProject(project)
-            if (added is Resource.Success) {
-                project.id = added.data.id
+        runBlocking {
+            repository.addProject(project)
+            val result = repository.getProject(project.id)
+            if (result is Resource.Success) {
+                resultName = result.data.name
             }
-            val result = repository.getProject(project)
-            assertEquals(expected, result)
+            assertEquals(expectedName, resultName)
         }
     }
 
     @Test
     fun updateProjectTest() {
-        val project = Project(name = "name", date = 111L)
-        val projectExpected = Project(name = "name", date = 555L)
-        val expected = Resource.Success(projectExpected)
+        val project = Project(name = "name")
+        val expectedName = "name123"
+        var resultName = ""
 
-        runBlocking{
+        runBlocking {
             val added = repository.addProject(project)
             if (added is Resource.Success) {
-                projectExpected.id = added.data.id
+                added.data.name = expectedName
+                val result = repository.updateProject(added.data)
+                if (result is Resource.Success) {
+                    resultName = result.data.name
+                }
             }
-            val result = repository.updateProject(projectExpected)
-            assertEquals(expected, result)
+            assertEquals(expectedName, resultName)
         }
     }
 
     @Test
     fun getAllProjectsTest() {
-        val project1 = Project(name = "name", date = 111L)
-        val project2 = Project(name = "name2", date = 555L)
-        val expected = Resource.Success(mutableListOf(project1, project2))
+        val project1 = Project(name = "name")
+        val project2 = Project(name = "name2")
+        val expectedSize = 2
+        var resultSize = 0
 
-        runBlocking{
-            val added1 = repository.addProject(project1)
-            if (added1 is Resource.Success) {
-                project1.id = added1.data.id
+        runBlocking {
+            repository.addProject(project1)
+            repository.addProject(project2)
+            val result = repository.getAllProjects().first()
+            if (result is Resource.Success) {
+                resultSize = result.data.size
             }
-            val added2 = repository.addProject(project2)
-            if (added2 is Resource.Success) {
-                project2.id = added2.data.id
-            }
-            val result = repository.getAllProjects()
-            assertEquals(result, expected)
+            assertEquals(expectedSize, resultSize)
         }
     }
 }
