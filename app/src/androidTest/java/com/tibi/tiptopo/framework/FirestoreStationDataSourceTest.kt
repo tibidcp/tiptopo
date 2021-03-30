@@ -4,8 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.data.MapDataSource
-import com.tibi.tiptopo.data.MapRepository
+import com.tibi.tiptopo.data.station.StationDataSource
+import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.Station
 import junit.framework.TestCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,8 +23,8 @@ import retrofit2.Retrofit
 class FirestoreStationDataSourceTest : TestCase() {
 
     private val testDispatcher = TestCoroutineDispatcher()
-    private val dataSource: MapDataSource<Station> = FirestoreStationDataSource()
-    private val repository: MapRepository<Station> = MapRepository(testDispatcher, dataSource)
+    private val dataSource: StationDataSource = FirestoreStationDataSource()
+    private val repository: StationRepository = StationRepository(testDispatcher, dataSource)
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("http://10.0.2.2:8080/emulator/v1/projects/tiptopo/databases/(default)/")
@@ -66,7 +66,7 @@ class FirestoreStationDataSourceTest : TestCase() {
         var resultName = ""
 
         runBlocking {
-            val result = repository.add(station)
+            val result = repository.addStation(station)
             if (result is Resource.Success) {
                 resultName = result.data.name
             }
@@ -81,8 +81,8 @@ class FirestoreStationDataSourceTest : TestCase() {
         var resultName = ""
 
         runBlocking {
-            repository.add(station)
-            val result = repository.get(station.id)
+            repository.addStation(station)
+            val result = repository.getStation(station.id)
             if (result is Resource.Success) {
                 resultName = result.data.name
             }
@@ -97,10 +97,10 @@ class FirestoreStationDataSourceTest : TestCase() {
         var resultName = ""
 
         runBlocking {
-            val added = repository.add(station)
+            val added = repository.addStation(station)
             if (added is Resource.Success) {
                 added.data.name = expectedName
-                val result = repository.update(added.data)
+                val result = repository.updateStation(added.data)
                 if (result is Resource.Success) {
                     resultName = result.data.name
                 }
@@ -117,9 +117,9 @@ class FirestoreStationDataSourceTest : TestCase() {
         var resultSize = 0
 
         runBlocking {
-            repository.add(station1)
-            repository.add(station2)
-            val result = repository.getAll().first()
+            repository.addStation(station1)
+            repository.addStation(station2)
+            val result = repository.getAllStations().first()
             if (result is Resource.Success) {
                 resultSize = result.data.size
             }

@@ -5,7 +5,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.data.MapDataSource
+import com.tibi.tiptopo.data.project.ProjectDataSource
 import com.tibi.tiptopo.domain.Project
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,34 +14,34 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-class FirestoreProjectDataSource @Inject constructor() : MapDataSource<Project> {
+class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
 
     private val firestore = Firebase.firestore
     private val path = "users/${Firebase.auth.currentUser?.uid}/projects"
 
-    override suspend fun add(item: Project): Resource<Project> {
+    override suspend fun addProject(project: Project): Resource<Project> {
         val doc = firestore.collection(path)
             .document()
-        if (item.id.isEmpty()) {
-            item.id = doc.id
+        if (project.id.isEmpty()) {
+            project.id = doc.id
         }
-        item.date = System.currentTimeMillis()
-        doc.set(item).await()
-        return Resource.Success(item)
+        project.date = System.currentTimeMillis()
+        doc.set(project).await()
+        return Resource.Success(project)
     }
 
-    override suspend fun get(id: String): Resource<Project> {
+    override suspend fun getProject(projectId: String): Resource<Project> {
         val result = firestore.collection(path)
-            .document(id)
+            .document(projectId)
             .get()
             .await()
         return Resource.Success(result.toObject()!!)
     }
 
-    override suspend fun update(item: Project) = add(item)
+    override suspend fun updateProject(project: Project) = addProject(project)
 
     @ExperimentalCoroutinesApi
-    override suspend fun getAll(): Flow<Resource<List<Project>>> = callbackFlow {
+    override suspend fun getAllProjects(): Flow<Resource<List<Project>>> = callbackFlow {
         val result = firestore
             .collection(path)
         val subscription = result.addSnapshotListener { snapshot, _ ->
