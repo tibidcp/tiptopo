@@ -5,8 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.data.project.ProjectRepository
+import com.tibi.tiptopo.data.MapRepository
 import com.tibi.tiptopo.domain.Project
+import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,14 +15,16 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class ProjectsViewModel @Inject constructor(private val projectRepository: ProjectRepository) : ViewModel() {
+class ProjectsViewModel @Inject constructor(
+    private val projectRepository: MapRepository<Project>
+) : ViewModel() {
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
     val projects = liveData<Resource<List<Project>>> {
         emit(Resource.Loading())
         try {
-            projectRepository.getAllProjects().collect {
+            projectRepository.getAll().collect {
                 emit(it)
             }
         } catch (e: Exception) {
@@ -31,7 +34,7 @@ class ProjectsViewModel @Inject constructor(private val projectRepository: Proje
 
     fun addProject(name: String) {
         viewModelScope.launch {
-            projectRepository.addProject(Project(name = name))
+            projectRepository.add(Project(name = name))
         }
     }
 }

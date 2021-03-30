@@ -1,6 +1,10 @@
 package com.tibi.tiptopo.presentation.map
 
 import android.util.Log
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -11,12 +15,17 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.firebase.ui.auth.AuthUI
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.geometry.Point
@@ -69,7 +78,20 @@ fun MapScreen(project: Project, mapViewModel: MapViewModel) {
         }
     ) {
         val mapView = rememberMapViewWithLifecycle()
-        MapViewContainer(mapView)
+        Box {
+            MapViewContainer(mapView)
+            Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = { /*TODO*/ }) {
+                    Text(text = stringResource(R.string.station))
+                }
+                val text = when(val station = mapViewModel.currentStation) {
+                    is Resource.Failure -> stringResource(R.string.error)
+                    is Resource.Loading -> stringResource(R.string.no_station)
+                    is Resource.Success -> station.data.name
+                }
+                Text(text = text, Modifier.padding(8.dp))
+            }
+        }
     }
 }
 
@@ -79,16 +101,20 @@ private fun MapViewContainer(map: MapView) {
     AndroidView({ map }) { mapView ->
         coroutineScope.launch {
             val googleMap = mapView.awaitMap()
-            googleMap.uiSettings.isZoomControlsEnabled = true
-            val latLng = LatLng(55.696113, 37.504172)
-            googleMap.addMarker {
-                position(latLng)
-                title("New Point")
-            }
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
+            googleMap.apply {
+                mapType = GoogleMap.MAP_TYPE_NONE
+                uiSettings.isZoomControlsEnabled = true
+                val latLng = LatLng(55.696113, 37.504172)
+                addMarker {
+                    position(latLng)
+                    title("New Point")
+                }
+                moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
 
-            val (x, y) = SphericalMercatorProjection(10000.0).toLatLng(Point(6050.0, 3130.0))
-            Log.d("SphericalMercatorProjection", "$x, $y")
+                val (x, y) = SphericalMercatorProjection(10000.0)
+                    .toLatLng(Point(6050.0, 3130.0))
+                Log.d("SphericalMercatorProjection", "$x, $y")
+            }
         }
     }
 }

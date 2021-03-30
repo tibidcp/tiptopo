@@ -2,8 +2,11 @@ package com.tibi.tiptopo.presentation.di
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
-import com.tibi.tiptopo.data.project.ProjectDataSource
+import com.tibi.tiptopo.data.MapDataSource
+import com.tibi.tiptopo.domain.Project
+import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.framework.FirestoreProjectDataSource
+import com.tibi.tiptopo.framework.FirestoreStationDataSource
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import dagger.Binds
 import dagger.Module
@@ -15,13 +18,22 @@ import javax.inject.Qualifier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
-@Module
 @InstallIn(ViewModelComponent::class)
-abstract class ProjectDataSource {
-    @Binds
+@Module
+abstract class ProjectDataSourceModule {
     @ViewModelScoped
+    @Binds
     abstract fun bindProjectDataSource(impl: FirestoreProjectDataSource):
-            ProjectDataSource
+            MapDataSource<Project>
+}
+
+@InstallIn(ViewModelComponent::class)
+@Module
+abstract class StationDataSourceModule {
+    @ViewModelScoped
+    @Binds
+    abstract fun bindStationDataSource(impl: FirestoreStationDataSource):
+            MapDataSource<Station>
 }
 
 @Module

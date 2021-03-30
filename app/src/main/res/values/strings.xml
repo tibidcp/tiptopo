@@ -9,4 +9,6 @@
     <string name="add">Add</string>
     <string name="project_name">Project name</string>
     <string name="error">Error</string>
+    <string name="no_station">No station</string>
+    <string name="station">Station</string>
 </resources>

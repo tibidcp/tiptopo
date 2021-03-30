@@ -17,9 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.firebase.auth.FirebaseAuth
+import com.tibi.tiptopo.R
 
 const val TAG = "Login"
 
@@ -50,7 +52,7 @@ fun Login(loginViewModel: LoginViewModel, onLoginComplete: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(onClick = { launchSignInFlow(openLoginActivity) }) {
-                    Text("Login")
+                    Text(stringResource(R.string.login))
                 }
             }
         }
