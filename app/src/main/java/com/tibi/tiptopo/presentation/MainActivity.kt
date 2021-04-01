@@ -10,6 +10,7 @@ import com.tibi.tiptopo.NavGraph
 import com.tibi.tiptopo.presentation.login.LoginViewModel
 import com.tibi.tiptopo.presentation.map.MapViewModel
 import com.tibi.tiptopo.presentation.projects.ProjectsViewModel
+import com.tibi.tiptopo.presentation.stations.StationsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -17,6 +18,7 @@ class MainActivity : AppCompatActivity() {
     private val projectsViewModel: ProjectsViewModel by viewModels()
     private val loginViewModel: LoginViewModel by viewModels()
     private val mapViewModel: MapViewModel by viewModels()
+    private val stationsViewModel: StationsViewModel by viewModels()
 
     @ExperimentalComposeUiApi
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +28,8 @@ class MainActivity : AppCompatActivity() {
                 NavGraph(
                     loginViewModel = loginViewModel,
                     projectsViewModel = projectsViewModel,
-                    mapViewModel = mapViewModel
+                    mapViewModel = mapViewModel,
+                    stationsViewModel = stationsViewModel
                 )
             }
         }

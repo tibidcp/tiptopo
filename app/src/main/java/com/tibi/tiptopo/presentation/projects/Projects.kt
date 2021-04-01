@@ -58,7 +58,7 @@ import java.util.*
 @Composable
 fun Projects(
     projectsViewModel: ProjectsViewModel,
-    selectProject: (String) -> Unit,
+    onProjectSelected: () -> Unit,
     onLogOut: () -> Unit
 ) {
 
@@ -69,7 +69,7 @@ fun Projects(
         AUTHENTICATED -> {
             ProjectScreen(
                 projectsViewModel = projectsViewModel,
-                selectProject = selectProject
+                onProjectSelected = onProjectSelected
             )
         }
         UNAUTHENTICATED -> onLogOut()
@@ -80,7 +80,7 @@ fun Projects(
 @Composable
 fun ProjectScreen(
     projectsViewModel: ProjectsViewModel,
-    selectProject: (String) -> Unit
+    onProjectSelected: () -> Unit
 ) {
     val projectItemsState = projectsViewModel.projects.observeAsState(Resource.Loading())
     Scaffold(
@@ -106,7 +106,10 @@ fun ProjectScreen(
                         items(projectItems.data.sortedByDescending { it.date }) { project ->
                             ProjectRow(
                                 project = project,
-                                { selectProject(project.id) },
+                                {
+                                    projectsViewModel.saveProjectId(project.id)
+                                    onProjectSelected()
+                                },
                                 Modifier.fillParentMaxWidth()
                             )
                         }

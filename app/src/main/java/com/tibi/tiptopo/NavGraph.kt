@@ -17,12 +17,16 @@ import com.tibi.tiptopo.presentation.map.Map
 import com.tibi.tiptopo.presentation.map.MapViewModel
 import com.tibi.tiptopo.presentation.projects.Projects
 import com.tibi.tiptopo.presentation.projects.ProjectsViewModel
+import com.tibi.tiptopo.presentation.stations.Stations
+import com.tibi.tiptopo.presentation.stations.StationsViewModel
 
 object MainDestinations {
     const val LoginRoute = "login"
     const val ProjectsRoute = "projects"
     const val MapRoute = "map"
+    const val StationsRoute = "stations"
     const val ProjectIdKey = "projectId"
+    const val StationIdKey = "stationId"
 }
 
 @ExperimentalComposeUiApi
@@ -31,6 +35,7 @@ fun NavGraph(
     loginViewModel: LoginViewModel,
     projectsViewModel: ProjectsViewModel,
     mapViewModel: MapViewModel,
+    stationsViewModel: StationsViewModel,
     startDestination: String = MainDestinations.LoginRoute
 ) {
     val navController = rememberNavController()
@@ -46,19 +51,22 @@ fun NavGraph(
         composable(MainDestinations.ProjectsRoute) {
             Projects(
                 projectsViewModel = projectsViewModel,
-                selectProject = actions.selectProject,
+                onProjectSelected = actions.onProjectSelected,
                 onLogOut = actions.onLogOut
             )
         }
-        composable(
-            "${MainDestinations.MapRoute}/{$ProjectIdKey}",
-            arguments = listOf(navArgument(ProjectIdKey) { type = NavType.StringType })
-            ) { backStackEntry ->
-            val arguments = requireNotNull(backStackEntry.arguments)
+        composable(MainDestinations.MapRoute) {
             Map(
                 mapViewModel = mapViewModel,
-                projectId = arguments.getString(ProjectIdKey, ""),
+                onSetStation = actions.onSetStation,
                 onLogOut = actions.onLogOut
+            )
+        }
+        composable(MainDestinations.StationsRoute) {
+            Stations(
+                stationsViewModel = stationsViewModel,
+                onLogOut = actions.onLogOut,
+                upPress = actions.upPress
             )
         }
     }
@@ -71,13 +79,19 @@ class MainActions(navController: NavHostController) {
             popUpTo(0) { inclusive = true }
         }
     }
-    val selectProject: (String) -> Unit = { projectId: String ->
-        navController.navigate("${MainDestinations.MapRoute}/$projectId")
+    val onProjectSelected: () -> Unit = {
+        navController.navigate(MainDestinations.MapRoute)
+    }
+    val onSetStation: () -> Unit = {
+        navController.navigate(MainDestinations.StationsRoute)
     }
     val onLogOut: () -> Unit = {
         navController.navigate(MainDestinations.LoginRoute) {
             launchSingleTop = true
             popUpTo(0) { inclusive = true }
         }
+    }
+    val upPress: () -> Unit = {
+        navController.navigateUp()
     }
 }

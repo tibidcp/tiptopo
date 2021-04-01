@@ -35,7 +35,9 @@ class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
             .document(projectId)
             .get()
             .await()
-        return Resource.Success(result.toObject()!!)
+            .toObject<Project>()
+        requireNotNull(result)
+        return Resource.Success(result)
     }
 
     override suspend fun updateProject(project: Project) = addProject(project)

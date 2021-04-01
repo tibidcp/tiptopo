@@ -44,17 +44,25 @@ import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
 
 @Composable
-fun Map(projectId: String, mapViewModel: MapViewModel, onLogOut: () -> Unit) {
-    val authState: FirebaseUserLiveData.AuthenticationState by
-    mapViewModel.authenticationState
+fun Map(
+    mapViewModel: MapViewModel,
+    onSetStation: () -> Unit,
+    onLogOut: () -> Unit
+) {
+    val authState: FirebaseUserLiveData.AuthenticationState by mapViewModel.authenticationState
         .observeAsState(FirebaseUserLiveData.AuthenticationState.AUTHENTICATED)
-    mapViewModel.setCurrentProject(projectId)
+    mapViewModel.apply {
+        setCurrentProject()
+        setProjectIdToPath()
+        setCurrentStation()
+    }
+
 
     when (authState) {
         FirebaseUserLiveData.AuthenticationState.AUTHENTICATED -> {
             when (val project = mapViewModel.currentProject) {
                 is Resource.Loading -> { ProgressCircular() }
-                is Resource.Success -> MapScreen(project.data, mapViewModel)
+                is Resource.Success -> MapScreen(project.data, onSetStation, mapViewModel)
                 is Resource.Failure -> { Text(text = stringResource(R.string.error)) }
             }
         }
@@ -63,7 +71,11 @@ fun Map(projectId: String, mapViewModel: MapViewModel, onLogOut: () -> Unit) {
 }
 
 @Composable
-fun MapScreen(project: Project, mapViewModel: MapViewModel) {
+fun MapScreen(
+    project: Project,
+    onSetStation: () -> Unit,
+    mapViewModel: MapViewModel
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -79,13 +91,13 @@ fun MapScreen(project: Project, mapViewModel: MapViewModel) {
     ) {
         val mapView = rememberMapViewWithLifecycle()
         Box {
-            MapViewContainer(mapView)
+            MapViewContainer(mapView, mapViewModel)
             Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = { onSetStation() }) {
                     Text(text = stringResource(R.string.station))
                 }
                 val text = when(val station = mapViewModel.currentStation) {
-                    is Resource.Failure -> stringResource(R.string.error)
+                    is Resource.Failure -> station.throwable.message.toString()
                     is Resource.Loading -> stringResource(R.string.no_station)
                     is Resource.Success -> station.data.name
                 }
@@ -96,7 +108,7 @@ fun MapScreen(project: Project, mapViewModel: MapViewModel) {
 }
 
 @Composable
-private fun MapViewContainer(map: MapView) {
+private fun MapViewContainer(map: MapView, mapViewModel: MapViewModel) {
     val coroutineScope = rememberCoroutineScope()
     AndroidView({ map }) { mapView ->
         coroutineScope.launch {
@@ -114,6 +126,10 @@ private fun MapViewContainer(map: MapView) {
                 val (x, y) = SphericalMercatorProjection(10000.0)
                     .toLatLng(Point(6050.0, 3130.0))
                 Log.d("SphericalMercatorProjection", "$x, $y")
+
+                setOnMapLongClickListener {
+
+                }
             }
         }
     }

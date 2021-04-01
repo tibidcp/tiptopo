@@ -38,7 +38,8 @@ class FirestoreStationDataSource @Inject constructor() : StationDataSource {
             .document(stationId)
             .get()
             .await()
-        return Resource.Success(result.toObject()!!)
+            .toObject<Station>() ?: return Resource.Loading()
+        return Resource.Success(result)
     }
 
     override suspend fun updateStation(station: Station) = addStation(station)
