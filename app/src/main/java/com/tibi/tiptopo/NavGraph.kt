@@ -3,14 +3,12 @@ package com.tibi.tiptopo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.hilt.navigation.compose.hiltNavGraphViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navArgument
 import androidx.navigation.compose.navigate
 import androidx.navigation.compose.rememberNavController
-import com.tibi.tiptopo.MainDestinations.ProjectIdKey
 import com.tibi.tiptopo.presentation.login.Login
 import com.tibi.tiptopo.presentation.login.LoginViewModel
 import com.tibi.tiptopo.presentation.map.Map
@@ -32,10 +30,6 @@ object MainDestinations {
 @ExperimentalComposeUiApi
 @Composable
 fun NavGraph(
-    loginViewModel: LoginViewModel,
-    projectsViewModel: ProjectsViewModel,
-    mapViewModel: MapViewModel,
-    stationsViewModel: StationsViewModel,
     startDestination: String = MainDestinations.LoginRoute
 ) {
     val navController = rememberNavController()
@@ -46,9 +40,11 @@ fun NavGraph(
         startDestination = startDestination
     ) {
         composable(MainDestinations.LoginRoute) {
+            val loginViewModel: LoginViewModel = hiltNavGraphViewModel()
             Login(loginViewModel, onLoginComplete = actions.onLoginComplete)
         }
         composable(MainDestinations.ProjectsRoute) {
+            val projectsViewModel: ProjectsViewModel = hiltNavGraphViewModel()
             Projects(
                 projectsViewModel = projectsViewModel,
                 onProjectSelected = actions.onProjectSelected,
@@ -56,6 +52,7 @@ fun NavGraph(
             )
         }
         composable(MainDestinations.MapRoute) {
+            val mapViewModel: MapViewModel = hiltNavGraphViewModel()
             Map(
                 mapViewModel = mapViewModel,
                 onSetStation = actions.onSetStation,
@@ -63,6 +60,7 @@ fun NavGraph(
             )
         }
         composable(MainDestinations.StationsRoute) {
+            val stationsViewModel: StationsViewModel = hiltNavGraphViewModel()
             Stations(
                 stationsViewModel = stationsViewModel,
                 onLogOut = actions.onLogOut,

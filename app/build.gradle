@@ -93,7 +93,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:26.1.0')
     implementation 'com.firebaseui:firebase-ui-auth:7.1.1'
     implementation 'com.google.firebase:firebase-auth-ktx'
-    implementation 'com.google.firebase:firebase-firestore-ktx:22.1.1'
+    implementation 'com.google.firebase:firebase-firestore-ktx:22.1.2'
 
     //Hilt
     implementation "com.google.dagger:hilt-android:$hilt_version"
@@ -126,4 +126,10 @@ dependencies {
     implementation "com.google.android.material:compose-theme-adapter:$composeVersion"
     implementation "androidx.compose.material:material-icons-extended:$composeVersion"
     implementation "androidx.navigation:navigation-compose:1.0.0-alpha09"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha03"
+    implementation 'androidx.hilt:hilt-navigation-compose:1.0.0-alpha01'
+
+
+    // proj4j
+    implementation 'org.osgeo:proj4j:0.1.0'
 }

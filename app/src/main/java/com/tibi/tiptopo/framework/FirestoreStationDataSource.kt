@@ -7,6 +7,7 @@ import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.station.StationDataSource
 import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -14,20 +15,19 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class FirestoreStationDataSource @Inject constructor() : StationDataSource {
+class FirestoreStationDataSource @Inject constructor(
+    @CurrentProjectId private val projectId: String
+) : StationDataSource {
 
     private val firestore = Firebase.firestore
-    private lateinit var path: String
-
-    override fun setProjectId(projectId: String) {
-        path = "users/${Firebase.auth.currentUser?.uid}/projects/$projectId/stations"
-    }
+    private val path = "users/${Firebase.auth.currentUser?.uid}/projects/$projectId/stations"
 
     override suspend fun addStation(station: Station): Resource<Station> {
         val doc = firestore.collection(path)
             .document()
         if (station.id.isEmpty()) {
             station.id = doc.id
+            station.date = System.currentTimeMillis()
         }
         doc.set(station).await()
         return Resource.Success(station)
@@ -50,8 +50,24 @@ class FirestoreStationDataSource @Inject constructor() : StationDataSource {
             .collection(path)
         val subscription = result.addSnapshotListener { snapshot, _ ->
             if (!snapshot!!.isEmpty) {
-                val projectList = snapshot.map { it.toObject<Station>() }.toList()
-                offer(Resource.Success(projectList))
+                val stationList = snapshot.map { it.toObject<Station>() }.toList()
+                offer(Resource.Success(stationList))
+            }
+        }
+        awaitClose { subscription.remove() }
+    }
+
+    @ExperimentalCoroutinesApi
+    override suspend fun getLastStation(): Flow<Resource<Station>> = callbackFlow {
+        val result = firestore
+            .collection(path)
+        val subscription = result.addSnapshotListener { snapshot, _ ->
+            if (!snapshot!!.isEmpty) {
+                val station = snapshot
+                    .map { it.toObject<Station>() }.maxByOrNull { it.date }
+                if (station != null) {
+                    offer(Resource.Success(station))
+                }
             }
         }
         awaitClose { subscription.remove() }

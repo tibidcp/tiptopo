@@ -1,6 +1,5 @@
 package com.tibi.tiptopo.presentation.map
 
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -15,7 +14,6 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,19 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.firebase.ui.auth.AuthUI
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.geometry.Point
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.awaitMap
-import com.google.maps.android.ktx.utils.component1
-import com.google.maps.android.ktx.utils.component2
-import com.google.maps.android.ktx.utils.geometry.component1
-import com.google.maps.android.ktx.utils.geometry.component2
-import com.google.maps.android.projection.SphericalMercatorProjection
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
+import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.Project
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
@@ -51,18 +43,13 @@ fun Map(
 ) {
     val authState: FirebaseUserLiveData.AuthenticationState by mapViewModel.authenticationState
         .observeAsState(FirebaseUserLiveData.AuthenticationState.AUTHENTICATED)
-    mapViewModel.apply {
-        setCurrentProject()
-        setProjectIdToPath()
-        setCurrentStation()
-    }
-
+    val currentProject = mapViewModel.currentProject.observeAsState(Resource.Loading()).value
 
     when (authState) {
         FirebaseUserLiveData.AuthenticationState.AUTHENTICATED -> {
-            when (val project = mapViewModel.currentProject) {
+            when (currentProject) {
                 is Resource.Loading -> { ProgressCircular() }
-                is Resource.Success -> MapScreen(project.data, onSetStation, mapViewModel)
+                is Resource.Success -> MapScreen(currentProject.data, onSetStation, mapViewModel)
                 is Resource.Failure -> { Text(text = stringResource(R.string.error)) }
             }
         }
@@ -76,6 +63,8 @@ fun MapScreen(
     onSetStation: () -> Unit,
     mapViewModel: MapViewModel
 ) {
+    val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -91,15 +80,17 @@ fun MapScreen(
     ) {
         val mapView = rememberMapViewWithLifecycle()
         Box {
-            MapViewContainer(mapView, mapViewModel)
+            val text = when (currentStation) {
+                is Resource.Failure -> currentStation.throwable.message.toString()
+                is Resource.Loading -> stringResource(R.string.no_station)
+                is Resource.Success -> {
+                    MapViewContainer(mapView, mapViewModel, currentStation.data.id)
+                    currentStation.data.name
+                }
+            }
             Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { onSetStation() }) {
                     Text(text = stringResource(R.string.station))
-                }
-                val text = when(val station = mapViewModel.currentStation) {
-                    is Resource.Failure -> station.throwable.message.toString()
-                    is Resource.Loading -> stringResource(R.string.no_station)
-                    is Resource.Success -> station.data.name
                 }
                 Text(text = text, Modifier.padding(8.dp))
             }
@@ -108,27 +99,23 @@ fun MapScreen(
 }
 
 @Composable
-private fun MapViewContainer(map: MapView, mapViewModel: MapViewModel) {
+private fun MapViewContainer(map: MapView, mapViewModel: MapViewModel, stationId: String) {
     val coroutineScope = rememberCoroutineScope()
     AndroidView({ map }) { mapView ->
         coroutineScope.launch {
             val googleMap = mapView.awaitMap()
             googleMap.apply {
-                mapType = GoogleMap.MAP_TYPE_NONE
+//                mapType = GoogleMap.MAP_TYPE_NONE
                 uiSettings.isZoomControlsEnabled = true
-                val latLng = LatLng(55.696113, 37.504172)
+                val latLng = LatLng(55.67520559996388, 37.8)
                 addMarker {
                     position(latLng)
                     title("New Point")
                 }
                 moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17f))
 
-                val (x, y) = SphericalMercatorProjection(10000.0)
-                    .toLatLng(Point(6050.0, 3130.0))
-                Log.d("SphericalMercatorProjection", "$x, $y")
-
                 setOnMapLongClickListener {
-
+                    mapViewModel.addMeasurement(Measurement(latLng = it), stationId)
                 }
             }
         }

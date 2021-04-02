@@ -1,13 +1,13 @@
 package com.tibi.tiptopo.presentation.di
 
-import android.app.Application
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
-import com.tibi.tiptopo.R
+import com.tibi.tiptopo.MainDestinations.ProjectIdKey
+import com.tibi.tiptopo.data.measurement.MeasurementDataSource
 import com.tibi.tiptopo.data.project.ProjectDataSource
 import com.tibi.tiptopo.data.station.StationDataSource
+import com.tibi.tiptopo.framework.FirestoreMeasurementDataSource
 import com.tibi.tiptopo.framework.FirestoreProjectDataSource
 import com.tibi.tiptopo.framework.FirestoreStationDataSource
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
@@ -16,7 +16,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
-import dagger.hilt.android.internal.managers.ApplicationComponentManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ViewModelScoped
 import dagger.hilt.components.SingletonComponent
@@ -40,6 +39,15 @@ abstract class StationDataSourceModule {
     @Binds
     abstract fun bindStationDataSource(impl: FirestoreStationDataSource):
             StationDataSource
+}
+
+@InstallIn(ViewModelComponent::class)
+@Module
+abstract class MeasurementDataSourceModule {
+    @ViewModelScoped
+    @Binds
+    abstract fun bindMeasurementDataSource(impl: FirestoreMeasurementDataSource):
+            MeasurementDataSource
 }
 
 @Module
@@ -68,12 +76,28 @@ object FirebaseUserLivedataModule {
 
 @Module
 @InstallIn(SingletonComponent::class)
+object ProjectIdModule {
+    @Provides
+    @CurrentProjectId
+    fun providesProjectId(@ApplicationContext context: Context) =
+        context
+            .getSharedPreferences("com.tibi.tiptopo", Context.MODE_PRIVATE)
+            .getString(ProjectIdKey, "") ?: ""
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
 object SharedPreferencesModule {
     @Provides
     fun providesSharedPreferences(@ApplicationContext context: Context) =
-        context.getSharedPreferences("com.tibi.tiptopo", Context.MODE_PRIVATE)
+        context
+            .getSharedPreferences("com.tibi.tiptopo", Context.MODE_PRIVATE)
 }
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class IoDispatcher
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class CurrentProjectId

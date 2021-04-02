@@ -7,5 +7,6 @@ data class Station(
     var x: Double = 0.0,
     var y: Double = 0.0,
     var z: Double = 0.0,
-    var da: Double = 0.0
+    var da: Double = 0.0,
+    var date: Long = 0
 )

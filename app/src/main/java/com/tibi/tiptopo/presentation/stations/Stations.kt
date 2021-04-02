@@ -24,7 +24,6 @@ fun Stations(
 ) {
     val authState: FirebaseUserLiveData.AuthenticationState by stationsViewModel.authenticationState
         .observeAsState(FirebaseUserLiveData.AuthenticationState.AUTHENTICATED)
-    stationsViewModel.setProjectIdToPath()
 
     when (authState) {
         FirebaseUserLiveData.AuthenticationState.AUTHENTICATED -> {
@@ -33,11 +32,10 @@ fun Stations(
         FirebaseUserLiveData.AuthenticationState.UNAUTHENTICATED -> onLogOut()
     }
 
-    when(val addedStation = stationsViewModel.addedStation) {
+    when (stationsViewModel.addedStation) {
         is Resource.Failure -> { LocalContext.current.toast(stringResource(R.string.error)) }
         is Resource.Loading -> { StationsScreen(stationsViewModel) }
         is Resource.Success -> {
-            stationsViewModel.saveCurrentStationId(addedStation.data.id)
             stationsViewModel.onStationAdded()
             upPress()
         }

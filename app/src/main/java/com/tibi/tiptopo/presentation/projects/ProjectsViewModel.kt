@@ -1,22 +1,17 @@
 package com.tibi.tiptopo.presentation.projects
 
-import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.tibi.tiptopo.MainDestinations.ProjectIdKey
-import com.tibi.tiptopo.MainDestinations.StationIdKey
-import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.Resource
+import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.domain.Project
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ActivityContext
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject

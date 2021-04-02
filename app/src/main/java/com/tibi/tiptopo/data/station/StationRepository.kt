@@ -22,5 +22,5 @@ class StationRepository @Inject constructor(
 
     suspend fun getAllStations() = withContext(ioDispatcher) { dataSource.getAllStations() }
 
-    fun setProjectId(projectId: String) = dataSource.setProjectId(projectId)
+    suspend fun getLastStation() = withContext(ioDispatcher) { dataSource.getLastStation() }
 }
