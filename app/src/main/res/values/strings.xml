@@ -11,4 +11,16 @@
     <string name="error">Error</string>
     <string name="no_station">No station</string>
     <string name="station">Station</string>
+    <string name="point">Point</string>
+    <string name="bus_sign">Bus sign</string>
+    <string name="hatchway">Hatchway</string>
+    <string name="lamp_metal">Lamp metal</string>
+    <string name="lamp_stone">Lamp stone</string>
+    <string name="post_metal">Post metal</string>
+    <string name="post_sidewalk">Post sidewalk</string>
+    <string name="post_stone">Post stone</string>
+    <string name="traffic_light">Traffic light</string>
+    <string name="traffic_sign">Traffic sign</string>
+    <string name="tree">Tree</string>
+    <string name="tree_conifer">Conifer tree</string>
 </resources>
