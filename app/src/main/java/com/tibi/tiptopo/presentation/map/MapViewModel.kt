@@ -1,5 +1,6 @@
 package com.tibi.tiptopo.presentation.map
 
+import android.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,7 +36,13 @@ class MapViewModel @Inject constructor(
     var setBounds by mutableStateOf(false)
         private set
 
+    var drawLine by mutableStateOf(false)
+        private set
+
     var currentPointObject by mutableStateOf(PointType.Point)
+        private set
+
+    var currentColor by mutableStateOf(Color.BLACK)
         private set
 
     val currentProject = liveData {
@@ -82,7 +89,19 @@ class MapViewModel @Inject constructor(
         setBounds = false
     }
 
+    fun onDrawLine() {
+        drawLine = true
+    }
+
+    fun onDrawLineComplete() {
+        drawLine = false
+    }
+
     fun onSetCurrentPointObject(pointObject: PointType) {
         currentPointObject = pointObject
+    }
+
+    fun onSetCurrentColor(color: Int) {
+        currentColor = color
     }
 }

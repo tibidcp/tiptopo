@@ -23,4 +23,5 @@
     <string name="traffic_sign">Traffic sign</string>
     <string name="tree">Tree</string>
     <string name="tree_conifer">Conifer tree</string>
+    <string name="complete_line_description">complete line</string>
 </resources>
