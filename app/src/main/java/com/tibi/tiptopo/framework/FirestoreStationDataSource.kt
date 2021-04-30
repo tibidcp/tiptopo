@@ -25,10 +25,8 @@ class FirestoreStationDataSource @Inject constructor(
     override suspend fun addStation(station: Station): Resource<Station> {
         val doc = firestore.collection(path)
             .document()
-        if (station.id.isEmpty()) {
-            station.id = doc.id
-            station.date = System.currentTimeMillis()
-        }
+        station.id = doc.id
+        station.date = System.currentTimeMillis()
         doc.set(station).await()
         return Resource.Success(station)
     }
@@ -42,7 +40,13 @@ class FirestoreStationDataSource @Inject constructor(
         return Resource.Success(result)
     }
 
-    override suspend fun updateStation(station: Station) = addStation(station)
+    override suspend fun updateStation(station: Station): Resource<Station> {
+        firestore.collection(path)
+            .document(station.id)
+            .set(station)
+            .await()
+        return Resource.Success(station)
+    }
 
     @ExperimentalCoroutinesApi
     override suspend fun getAllStations(): Flow<Resource<List<Station>>> = callbackFlow {

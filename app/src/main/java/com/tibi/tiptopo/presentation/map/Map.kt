@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.runtime.*
@@ -35,13 +36,11 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.ktx.addMarker
+import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.domain.Measurement
-import com.tibi.tiptopo.domain.PointType
-import com.tibi.tiptopo.domain.Project
-import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
@@ -89,14 +88,37 @@ fun MapScreen(
     mapViewModel: MapViewModel
 ) {
     val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
+    val currentLine = mapViewModel.currentLine
+    val drawLine = mapViewModel.drawLine
 
     Scaffold(
         topBar = {
-            when (mapViewModel.drawLine) {
+            when (drawLine) {
                 true -> TopAppBar(
-                        title = { Text(text = "draw line") },
+                        title = { Text(text =
+                        when (currentLine) {
+                            is Resource.Success -> stringResource(R.string.add_next_point)
+                            is Resource.Loading -> stringResource(R.string.add_first_point)
+                            is Resource.Failure -> stringResource(R.string.error)
+                        }
+                        ) },
                         actions = {
-                            IconButton(onClick = { mapViewModel.onDrawLineComplete() }) {
+                            IconButton(onClick = {
+                                if (currentLine is Resource.Success) {
+                                    mapViewModel.onDeleteLine(currentLine.data.id)
+                                    mapViewModel.onDrawLineComplete()
+                                    mapViewModel.onResetCurrentLine()
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    stringResource(R.string.delete)
+                                )
+                            }
+                            IconButton(onClick = {
+                                mapViewModel.onDrawLineComplete()
+                                mapViewModel.onResetCurrentLine()
+                            }) {
                                 Icon(
                                     Icons.Default.Check,
                                     stringResource(R.string.complete_line_description)
@@ -151,7 +173,10 @@ private fun MapViewContainer(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val measurements = mapViewModel.measurements.observeAsState(Resource.Loading()).value
+    val lines = mapViewModel.lines.observeAsState(Resource.Loading()).value
     val setBounds = mapViewModel.setBounds
+    val currentLine = mapViewModel.currentLine
+    val drawLine = mapViewModel.drawLine
 
     Box {
         AndroidView({ map }) { mapView ->
@@ -160,6 +185,41 @@ private fun MapViewContainer(
                 googleMap.apply {
 //                mapType = GoogleMap.MAP_TYPE_NONE
                     uiSettings.isZoomControlsEnabled = true
+
+
+                    if (drawLine) {
+                        when (currentLine) {
+                            is Resource.Success -> {
+                                setOnMarkerClickListener { marker ->
+                                    val line = currentLine.data
+                                    val lastVertex = line.vertices.maxByOrNull { it.index }
+                                    if (lastVertex != null &&
+                                        lastVertex.measurementId != marker.tag.toString()) {
+                                        val vertices = currentLine.data.vertices + listOf(Vertex(
+                                            measurementId = marker.tag.toString(),
+                                            index = lastVertex.index + 1
+                                        ))
+                                        line.vertices = vertices
+                                        mapViewModel.updateLine(line)
+                                    }
+                                    true
+                                }
+                            }
+                            is Resource.Loading -> {
+                                setOnMarkerClickListener { marker ->
+                                    val line = Line(vertices = listOf(Vertex(
+                                        measurementId = marker.tag.toString(),
+                                        index = 0
+                                    )))
+                                    mapViewModel.addLine(line)
+                                    true
+                                }
+                            }
+                            is Resource.Failure -> {  }
+                        }
+                    } else {
+                        setOnMarkerClickListener { false }
+                    }
 
                     setOnMapLongClickListener {
                         mapViewModel.addMeasurement(
@@ -194,8 +254,30 @@ private fun MapViewContainer(
                                         Color.BLACK
                                     ))
                                     anchor(measurement.type.anchorX, measurement.type.anchorY)
-                                }
+                                }.tag = measurement.id
                             }
+
+                            when (lines) {
+                                is Resource.Success -> {
+                                    lines.data.forEach { line ->
+                                        addPolyline {
+                                            clickable(true)
+                                            color(line.color)
+                                            line.vertices
+                                                .sortedBy { it.index }
+                                                .filter { vertex -> measurements.data.any { it.id == vertex.measurementId} }
+                                                .map { vertex ->
+                                                    val measurement = measurements.data
+                                                        .first { it.id == vertex.measurementId }
+                                                    LatLng(measurement.latitude, measurement.longitude)
+                                                }.forEach { add(it) }
+                                        }
+                                    }
+                                }
+                                is Resource.Failure -> {  }
+                                is Resource.Loading -> {  }
+                            }
+
                         }
                         is Resource.Failure -> {  }
                         is Resource.Loading -> {  }

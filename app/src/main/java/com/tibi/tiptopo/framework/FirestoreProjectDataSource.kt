@@ -22,9 +22,7 @@ class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
     override suspend fun addProject(project: Project): Resource<Project> {
         val doc = firestore.collection(path)
             .document()
-        if (project.id.isEmpty()) {
-            project.id = doc.id
-        }
+        project.id = doc.id
         project.date = System.currentTimeMillis()
         doc.set(project).await()
         return Resource.Success(project)
@@ -40,7 +38,13 @@ class FirestoreProjectDataSource @Inject constructor() : ProjectDataSource {
         return Resource.Success(result)
     }
 
-    override suspend fun updateProject(project: Project) = addProject(project)
+    override suspend fun updateProject(project: Project): Resource<Project> {
+        val doc = firestore.collection(path)
+            .document(project.id)
+        project.date = System.currentTimeMillis()
+        doc.set(project).await()
+        return Resource.Success(project)
+    }
 
     @ExperimentalCoroutinesApi
     override suspend fun getAllProjects(): Flow<Resource<List<Project>>> = callbackFlow {

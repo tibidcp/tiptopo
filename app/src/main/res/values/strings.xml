@@ -24,4 +24,7 @@
     <string name="tree">Tree</string>
     <string name="tree_conifer">Conifer tree</string>
     <string name="complete_line_description">complete line</string>
+    <string name="add_next_point">Add next point</string>
+    <string name="add_first_point">Add first point</string>
+    <string name="delete">Delete</string>
 </resources>

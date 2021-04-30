@@ -5,7 +5,8 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.data.measurement.MeasurementDataSource
+import com.tibi.tiptopo.data.line.LineDataSource
+import com.tibi.tiptopo.domain.Line
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,50 +16,54 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class FirestoreMeasurementDataSource @Inject constructor(
+class FirestoreLineDataSource @Inject constructor(
     @CurrentProjectId private val projectId: String
-) : MeasurementDataSource {
+) : LineDataSource {
 
     private val firestore = Firebase.firestore
     private val path =
-        "users/${Firebase.auth.currentUser?.uid}/projects/$projectId/measurements"
+        "users/${Firebase.auth.currentUser?.uid}/projects/$projectId/lines"
 
-    override suspend fun addMeasurement(measurement: Measurement): Resource<Measurement> {
+    override suspend fun addLine(line: Line): Resource<Line> {
         val doc = firestore.collection(path)
             .document()
-        measurement.id = doc.id
-        measurement.date = System.currentTimeMillis()
-        doc.set(measurement).await()
-        return Resource.Success(measurement)
+        line.id = doc.id
+        line.date = System.currentTimeMillis()
+        doc.set(line).await()
+        return Resource.Success(line)
     }
 
-    override suspend fun getMeasurement(measurementId: String): Resource<Measurement> {
+    override suspend fun getLine(lineId: String): Resource<Line> {
         val result = firestore.collection(path)
-            .document(measurementId)
+            .document(lineId)
             .get()
             .await()
-            .toObject<Measurement>() ?: return Resource.Loading()
+            .toObject<Line>() ?: return Resource.Loading()
         return Resource.Success(result)
     }
 
-    override suspend fun updateMeasurement(measurement: Measurement): Resource<Measurement> {
+    override suspend fun updateLine(line: Line): Resource<Line> {
         firestore.collection(path)
-            .document(measurement.id)
-            .set(measurement)
+            .document(line.id)
+            .set(line)
             .await()
-        return Resource.Success(measurement)
+        return Resource.Success(line)
     }
 
     @ExperimentalCoroutinesApi
-    override suspend fun getAllMeasurements(): Flow<Resource<List<Measurement>>> = callbackFlow {
+    override suspend fun getAllLines(): Flow<Resource<List<Line>>> = callbackFlow {
         val result = firestore
             .collection(path)
         val subscription = result.addSnapshotListener { snapshot, _ ->
             if (!snapshot!!.isEmpty) {
-                val measurementList = snapshot.map { it.toObject<Measurement>() }.toList()
-                offer(Resource.Success(measurementList))
+                val linetList = snapshot.map { it.toObject<Line>() }.toList()
+                offer(Resource.Success(linetList))
             }
         }
         awaitClose { subscription.remove() }
+    }
+
+    override suspend fun deleteLine(lineId: String) {
+        firestore.collection(path).document(lineId).delete()
     }
 }

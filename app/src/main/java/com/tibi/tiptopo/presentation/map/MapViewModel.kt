@@ -9,13 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.tibi.tiptopo.data.Resource
+import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
 import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.station.StationRepository
-import com.tibi.tiptopo.domain.Measurement
-import com.tibi.tiptopo.domain.PointType
-import com.tibi.tiptopo.domain.Project
-import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,15 +26,19 @@ class MapViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val stationRepository: StationRepository,
     private val measurementRepository: MeasurementRepository,
+    private val lineRepository: LineRepository,
     @CurrentProjectId private val projectId: String
 ) : ViewModel() {
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
-    var setBounds by mutableStateOf(false)
+    var currentLine by mutableStateOf<Resource<Line>>(Resource.Loading())
         private set
 
     var drawLine by mutableStateOf(false)
+        private set
+
+    var setBounds by mutableStateOf(false)
         private set
 
     var currentPointObject by mutableStateOf(PointType.Point)
@@ -74,10 +76,40 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    val lines = liveData<Resource<List<Line>>> {
+        emit(Resource.Loading())
+        try {
+            lineRepository.getAllLines().collect { emit(it) }
+        } catch (e: Exception) {
+            emit(Resource.Failure(e))
+        }
+    }
+
     fun addMeasurement(measurement: Measurement, stationId: String) {
         viewModelScope.launch {
             measurement.stationId = stationId
             measurementRepository.addMeasurement(measurement)
+        }
+    }
+
+    fun addLine(line: Line) {
+        viewModelScope.launch {
+            currentLine = try {
+                line.color = currentColor
+                lineRepository.addLine(line)
+            } catch (e: Exception) {
+                Resource.Failure(e)
+            }
+        }
+    }
+
+    fun updateLine(line: Line) {
+        viewModelScope.launch {
+            currentLine = try {
+                lineRepository.updateLine(line)
+            } catch (e: Exception) {
+                Resource.Failure(e)
+            }
         }
     }
 
@@ -89,6 +121,28 @@ class MapViewModel @Inject constructor(
         setBounds = false
     }
 
+    fun onSetCurrentPointObject(pointObject: PointType) {
+        currentPointObject = pointObject
+    }
+
+    fun onSetCurrentColor(color: Int) {
+        currentColor = color
+    }
+
+    fun onSetCurrentLine(lineId: String) {
+        viewModelScope.launch {
+            currentLine = try {
+                lineRepository.getLine(lineId)
+            } catch (e: Exception) {
+                Resource.Failure(e)
+            }
+        }
+    }
+
+    fun onResetCurrentLine() {
+        currentLine = Resource.Loading()
+    }
+
     fun onDrawLine() {
         drawLine = true
     }
@@ -97,11 +151,9 @@ class MapViewModel @Inject constructor(
         drawLine = false
     }
 
-    fun onSetCurrentPointObject(pointObject: PointType) {
-        currentPointObject = pointObject
-    }
-
-    fun onSetCurrentColor(color: Int) {
-        currentColor = color
+    fun onDeleteLine(lineId: String) {
+        viewModelScope.launch {
+            lineRepository.deleteLine(lineId)
+        }
     }
 }
