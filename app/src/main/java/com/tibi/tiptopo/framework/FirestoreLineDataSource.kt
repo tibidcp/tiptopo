@@ -7,7 +7,6 @@ import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineDataSource
 import com.tibi.tiptopo.domain.Line
-import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose

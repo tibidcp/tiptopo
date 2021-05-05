@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import com.firebase.ui.auth.AuthUI
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -183,7 +184,8 @@ private fun MapViewContainer(
             coroutineScope.launch {
                 val googleMap = mapView.awaitMap()
                 googleMap.apply {
-//                mapType = GoogleMap.MAP_TYPE_NONE
+                mapType = GoogleMap.MAP_TYPE_NONE
+                    clear()
                     uiSettings.isZoomControlsEnabled = true
 
 
