@@ -3,7 +3,7 @@ package com.tibi.tiptopo.presentation.login
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
-import androidx.activity.compose.registerForActivityResult
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +33,7 @@ fun Login(loginViewModel: LoginViewModel, onLoginComplete: () -> Unit) {
     )
 
     val openLoginActivity =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val response = IdpResponse.fromResultIntent(result.data)
             if (result.resultCode == Activity.RESULT_OK) {
                 Log.i(

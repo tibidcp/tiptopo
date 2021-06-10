@@ -6,10 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.hilt.navigation.compose.hiltNavGraphViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigate
 import androidx.navigation.compose.rememberNavController
 import com.tibi.tiptopo.presentation.login.Login
 import com.tibi.tiptopo.presentation.login.LoginViewModel
@@ -44,11 +44,11 @@ fun NavGraph(
         startDestination = startDestination
     ) {
         composable(MainDestinations.LoginRoute) {
-            val loginViewModel: LoginViewModel = hiltNavGraphViewModel()
+            val loginViewModel: LoginViewModel = hiltViewModel()
             Login(loginViewModel, onLoginComplete = actions.onLoginComplete)
         }
         composable(MainDestinations.ProjectsRoute) {
-            val projectsViewModel: ProjectsViewModel = hiltNavGraphViewModel()
+            val projectsViewModel: ProjectsViewModel = hiltViewModel()
             Projects(
                 projectsViewModel = projectsViewModel,
                 onProjectSelected = actions.onProjectSelected,
@@ -56,7 +56,7 @@ fun NavGraph(
             )
         }
         composable(MainDestinations.MapRoute) {
-            val mapViewModel: MapViewModel = hiltNavGraphViewModel()
+            val mapViewModel: MapViewModel = hiltViewModel()
             Map(
                 mapViewModel = mapViewModel,
                 onSetStation = actions.onSetStation,
@@ -64,7 +64,7 @@ fun NavGraph(
             )
         }
         composable(MainDestinations.StationsRoute) {
-            val stationsViewModel: StationsViewModel = hiltNavGraphViewModel()
+            val stationsViewModel: StationsViewModel = hiltViewModel()
             Stations(
                 stationsViewModel = stationsViewModel,
                 onLogOut = actions.onLogOut,
