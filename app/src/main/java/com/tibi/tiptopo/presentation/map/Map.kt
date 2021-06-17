@@ -1,9 +1,14 @@
 package com.tibi.tiptopo.presentation.map
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -13,10 +18,7 @@ import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -28,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import app.akexorcist.bluetotohspp.library.DeviceList
 import com.firebase.ui.auth.AuthUI
+import com.firebase.ui.auth.IdpResponse
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
@@ -36,6 +40,7 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.firebase.auth.FirebaseAuth
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
@@ -43,6 +48,8 @@ import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
+import com.tibi.tiptopo.presentation.login.TAG
+import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
 
@@ -91,6 +98,12 @@ fun MapScreen(
     val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
+    val showToast = mapViewModel.showToast
+
+    if (showToast.isNotBlank()) {
+        LocalContext.current.toast(showToast)
+        mapViewModel.onStopShowToast()
+    }
 
     Scaffold(
         topBar = {
@@ -178,6 +191,17 @@ private fun MapViewContainer(
     val setBounds = mapViewModel.setBounds
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
+
+    val showDeviceList = mapViewModel.showDeviceList
+    val openDeviceListActivity =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            mapViewModel.onStopShowDeviceList(result)
+        }
+    if (showDeviceList) {
+        openDeviceListActivity.launch(
+            Intent(LocalContext.current, DeviceList::class.java)
+        )
+    }
 
     Box {
         AndroidView({ map }) { mapView ->
@@ -293,6 +317,13 @@ private fun MapViewContainer(
 
             Button(onClick = { mapViewModel.onSetBounds() }, Modifier.padding(8.dp)) {
                 Icon(Icons.Default.Fullscreen, "")
+            }
+
+            Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
+                Icon(
+                    Icons.Default.Bluetooth,
+                    stringResource(R.string.bluetooth_button_description)
+                )
             }
         }
         DrawingTools(mapViewModel = mapViewModel)

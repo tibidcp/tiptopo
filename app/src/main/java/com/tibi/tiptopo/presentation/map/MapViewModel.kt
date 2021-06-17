@@ -1,13 +1,18 @@
 package com.tibi.tiptopo.presentation.map
 
+import android.app.Activity
+import android.app.Application
 import android.graphics.Color
+import android.util.Log
+import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.liveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
+import app.akexorcist.bluetotohspp.library.BluetoothSPP
+import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
+import app.akexorcist.bluetotohspp.library.BluetoothState
+import com.firebase.ui.auth.IdpResponse
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
@@ -27,6 +32,7 @@ class MapViewModel @Inject constructor(
     private val stationRepository: StationRepository,
     private val measurementRepository: MeasurementRepository,
     private val lineRepository: LineRepository,
+    private val bluetooth: BluetoothSPP,
     @CurrentProjectId private val projectId: String
 ) : ViewModel() {
 
@@ -41,10 +47,16 @@ class MapViewModel @Inject constructor(
     var setBounds by mutableStateOf(false)
         private set
 
+    var showDeviceList by mutableStateOf(false)
+        private set
+
     var currentPointObject by mutableStateOf(PointType.Point)
         private set
 
     var currentColor by mutableStateOf(Color.BLACK)
+        private set
+
+    var showToast by mutableStateOf("")
         private set
 
     val currentProject = liveData {
@@ -154,6 +166,49 @@ class MapViewModel @Inject constructor(
     fun onDeleteLine(lineId: String) {
         viewModelScope.launch {
             lineRepository.deleteLine(lineId)
+        }
+    }
+
+    fun onConnectBluetooth() {
+        if (!bluetooth.isBluetoothAvailable) {
+            showToast = "Bluetooth is not available"
+        } else if (!bluetooth.isBluetoothEnabled) {
+            showToast = "Bluetooth is not enabled"
+        } else {
+            bluetooth.setupService()
+            bluetooth.startService(BluetoothState.DEVICE_OTHER)
+
+            bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
+                override fun onDeviceConnected(name: String?, address: String?) {
+                    showToast = "Device connected"
+                }
+
+                override fun onDeviceDisconnected() {
+                    showToast = "Device disconnected"
+                }
+
+                override fun onDeviceConnectionFailed() {
+                    showToast = "Device connection failed"
+                }
+
+            })
+
+            bluetooth.setOnDataReceivedListener { data, message ->
+                Log.i("BluetoothTest", "data: $data; message: $message")
+            }
+
+            showDeviceList = true
+        }
+    }
+
+    fun onStopShowToast() {
+        showToast = ""
+    }
+
+    fun onStopShowDeviceList(result: ActivityResult) {
+        showDeviceList = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            bluetooth.connect(result.data)
         }
     }
 }

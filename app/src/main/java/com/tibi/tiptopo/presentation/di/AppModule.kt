@@ -3,6 +3,7 @@ package com.tibi.tiptopo.presentation.di
 import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
+import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import com.tibi.tiptopo.MainDestinations.ProjectIdKey
 import com.tibi.tiptopo.data.line.LineDataSource
 import com.tibi.tiptopo.data.measurement.MeasurementDataSource
@@ -24,6 +25,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
+import javax.inject.Singleton
 
 @InstallIn(ViewModelComponent::class)
 @Module
@@ -88,6 +90,7 @@ object FirebaseUserLivedataModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object ProjectIdModule {
+    @Singleton
     @Provides
     @CurrentProjectId
     fun providesProjectId(@ApplicationContext context: Context) =
@@ -99,6 +102,7 @@ object ProjectIdModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object SharedPreferencesModule {
+    @Singleton
     @Provides
     fun providesSharedPreferences(@ApplicationContext context: Context) =
         context
@@ -112,3 +116,12 @@ annotation class IoDispatcher
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class CurrentProjectId
+
+@Module
+@InstallIn(SingletonComponent::class)
+object BluetoothModule {
+    @Singleton
+    @Provides
+    fun provideBluetooth(@ApplicationContext context: Context) =
+        BluetoothSPP(context)
+}
