@@ -1,11 +1,11 @@
-package com.tibi.geodesy.parser
+package com.tibi.tiptopo.presentation.parser
 
 interface IDataParser {
     fun isValid(): Boolean
 
-    fun parseSD(): Float
+    fun parseSD(): Double
 
-    fun parseHA(): Float
+    fun parseHA(): Double
 
-    fun parseVA(): Float
+    fun parseVA(): Double
 }

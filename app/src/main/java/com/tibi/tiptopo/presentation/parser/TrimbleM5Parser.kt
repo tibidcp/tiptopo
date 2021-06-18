@@ -1,6 +1,6 @@
-package com.tibi.geodesy.parser
+package com.tibi.tiptopo.presentation.parser
 
-class TrimbleM5Parser(val message: String) : IDataParser {
+class TrimbleM5Parser(private val message: String) : IDataParser {
     private val strings = message.split("\\s+".toRegex())
     override fun isValid(): Boolean {
         return message.contains("M5|Adr") && message.contains("|SD") &&
@@ -8,16 +8,16 @@ class TrimbleM5Parser(val message: String) : IDataParser {
                 message.contains("DMS") && message.contains("|V1")
     }
 
-    override fun parseSD(): Float {
-        return strings[5].toFloat()
+    override fun parseSD(): Double {
+        return strings[5].toDouble()
     }
 
-    override fun parseHA(): Float {
-        return strings[8].toFloat()
+    override fun parseHA(): Double {
+        return strings[8].toDouble()
     }
 
-    override fun parseVA(): Float {
-        return strings[11].toFloat()
+    override fun parseVA(): Double {
+        return strings[11].toDouble()
     }
 
 }
