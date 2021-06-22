@@ -56,7 +56,7 @@ class FirestoreMeasurementDataSource @Inject constructor(
         val subscription = result.addSnapshotListener { snapshot, _ ->
             if (!snapshot!!.isEmpty) {
                 val measurementList = snapshot.map { it.toObject<Measurement>() }.toList()
-                offer(Resource.Success(measurementList))
+                trySend(Resource.Success(measurementList))
             }
         }
         awaitClose { subscription.remove() }

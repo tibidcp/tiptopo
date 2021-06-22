@@ -70,7 +70,7 @@ class FirestoreStationDataSource @Inject constructor(
                 val station = snapshot
                     .map { it.toObject<Station>() }.maxByOrNull { it.date }
                 if (station != null) {
-                    offer(Resource.Success(station))
+                    trySend(Resource.Success(station))
                 }
             }
         }
