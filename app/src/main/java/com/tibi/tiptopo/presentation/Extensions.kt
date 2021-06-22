@@ -34,6 +34,25 @@ fun LatLng.toPoint(): Point {
     return Point(dstCoord.x, dstCoord.y)
 }
 
+fun Point.toLatLng(): LatLng {
+    val factory = CRSFactory()
+    // mggt
+    val src = factory.createFromParameters("mggt", "+proj=tmerc " +
+            "+lat_0=55.66666666667 +lon_0=37.5 +k=1 +x_0=16.098 +y_0=14.512 +ellps=bessel " +
+            "+towgs84=316.151,78.924,589.650,-1.57273,2.69209,2.34693,8.4507 +units=m +no_defs")
+    // wgs84
+    val dst = factory.createFromName("EPSG:4326")
+
+    val transform = BasicCoordinateTransform(src, dst)
+
+    val srcCoord = ProjCoordinate(this.x, this.y)
+    val dstCoord = ProjCoordinate()
+
+    transform.transform(srcCoord, dstCoord)
+
+    return LatLng(dstCoord.x, dstCoord.y)
+}
+
 fun Point.directAngTo(pointB: Point): Double {
     val pointA = this
     val deltaX = pointB.x - pointA.x
