@@ -1,18 +1,19 @@
 package com.tibi.tiptopo.presentation.map
 
 import android.app.Activity
-import android.app.Application
 import android.graphics.Color
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.liveData
+import androidx.lifecycle.viewModelScope
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
 import app.akexorcist.bluetotohspp.library.BluetoothState
-import com.firebase.ui.auth.IdpResponse
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
@@ -20,7 +21,10 @@ import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.presentation.getCoordinate
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
+import com.tibi.tiptopo.presentation.parser.NikonRawParser
+import com.tibi.tiptopo.presentation.toLatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -195,6 +199,9 @@ class MapViewModel @Inject constructor(
 
             bluetooth.setOnDataReceivedListener { data, message ->
                 Log.i("BluetoothTest", "data: $data; message: $message")
+                val parser = NikonRawParser(message)
+                autoAddMeasurement(message)
+                Log.i("BluetoothTest", "va: ${parser.parseVA()}; ha: ${parser.parseHA()}; sd: ${parser.parseSD()}")
             }
 
             showDeviceList = true
@@ -209,6 +216,46 @@ class MapViewModel @Inject constructor(
         showDeviceList = false
         if (result.resultCode == Activity.RESULT_OK) {
             bluetooth.connect(result.data)
+        }
+    }
+
+    private fun autoAddMeasurement(message: String) {
+        val parser = NikonRawParser(message)
+        val currentStationValue = currentStation.value
+        val allMeasurementsValue = measurements.value
+        if (currentStationValue is Resource.Success) {
+            var maxNumber = 0
+            when (allMeasurementsValue) {
+                is Resource.Loading -> {
+
+                }
+                is Resource.Success -> {
+                    maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
+                }
+                is Resource.Failure -> return
+            }
+
+            val station = currentStationValue.data
+            val va = parser.parseVA()
+            val ha = parser.parseHA()
+            val sd = parser.parseSD()
+            val latLng = station.getCoordinate(ha, va, sd).toLatLng()
+
+            viewModelScope.launch {
+                measurementRepository.addMeasurement(
+                    Measurement(
+                        stationId = station.id,
+                        type = currentPointObject,
+                        number = maxNumber + 1,
+                        rawString = message,
+                        va = va,
+                        ha = ha,
+                        sd = sd,
+                        latitude = latLng.latitude,
+                        longitude = latLng.longitude
+                    )
+                )
+            }
         }
     }
 }

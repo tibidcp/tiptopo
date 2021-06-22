@@ -1,12 +1,10 @@
 package com.tibi.tiptopo.presentation.map
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -32,7 +30,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import app.akexorcist.bluetotohspp.library.DeviceList
 import com.firebase.ui.auth.AuthUI
-import com.firebase.ui.auth.IdpResponse
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
@@ -40,7 +37,6 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.firebase.auth.FirebaseAuth
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
@@ -48,7 +44,6 @@ import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
-import com.tibi.tiptopo.presentation.login.TAG
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
@@ -211,7 +206,7 @@ private fun MapViewContainer(
                 mapType = GoogleMap.MAP_TYPE_NONE
                     clear()
                     uiSettings.isZoomControlsEnabled = true
-
+                    setPadding(0, 100, 0, 0)
 
                     if (drawLine) {
                         when (currentLine) {
