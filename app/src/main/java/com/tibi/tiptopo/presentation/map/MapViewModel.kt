@@ -223,18 +223,8 @@ class MapViewModel @Inject constructor(
         val parser = NikonRawParser(message)
         val currentStationValue = currentStation.value
         val allMeasurementsValue = measurements.value
-        if (currentStationValue is Resource.Success) {
-            var maxNumber = 0
-            when (allMeasurementsValue) {
-                is Resource.Loading -> {
-
-                }
-                is Resource.Success -> {
-                    maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
-                }
-                is Resource.Failure -> return
-            }
-
+        if (currentStationValue is Resource.Success && allMeasurementsValue is Resource.Success) {
+            val maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
             val station = currentStationValue.data
             val va = parser.parseVA()
             val ha = parser.parseHA()

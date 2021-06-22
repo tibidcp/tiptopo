@@ -9,7 +9,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.tibi.tiptopo.data.Resource
+import com.tibi.tiptopo.data.measurement.MeasurementRepository
 import com.tibi.tiptopo.data.station.StationRepository
+import com.tibi.tiptopo.domain.Measurement
+import com.tibi.tiptopo.domain.PointType
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class StationsViewModel @Inject constructor(
     private val stationRepository: StationRepository,
+    private val measurementRepository: MeasurementRepository,
     private val sharedPreferences: SharedPreferences
 ) : ViewModel() {
 
@@ -43,6 +47,13 @@ class StationsViewModel @Inject constructor(
     fun addStation(station: Station) {
         viewModelScope.launch {
             addedStation = stationRepository.addStation(station)
+            measurementRepository.addMeasurement(
+                Measurement(
+                    type = PointType.Station,
+                    latitude = 37.498174661,
+                    longitude = 55.667005122
+                )
+            )
         }
     }
 
