@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -66,6 +67,8 @@ fun Map(
     onSetStation: () -> Unit,
     onLogOut: () -> Unit
 ) {
+    mapViewModel.setBluetoothDataListener()
+
     val authState: FirebaseUserLiveData.AuthenticationState by mapViewModel.authenticationState
         .observeAsState(FirebaseUserLiveData.AuthenticationState.AUTHENTICATED)
     val currentProject = mapViewModel.currentProject.observeAsState(Resource.Loading()).value

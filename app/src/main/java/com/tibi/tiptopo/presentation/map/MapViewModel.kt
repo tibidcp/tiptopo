@@ -197,14 +197,16 @@ class MapViewModel @Inject constructor(
 
             })
 
-            bluetooth.setOnDataReceivedListener { data, message ->
-                Log.i("BluetoothTest", "data: $data; message: $message")
-                val parser = NikonRawParser(message)
-                autoAddMeasurement(message)
-                Log.i("BluetoothTest", "va: ${parser.parseVA()}; ha: ${parser.parseHA()}; sd: ${parser.parseSD()}")
-            }
-
             showDeviceList = true
+        }
+    }
+
+    fun setBluetoothDataListener() {
+        bluetooth.setOnDataReceivedListener { data, message ->
+            Log.i("BluetoothTest", "data: $data; message: $message")
+            val parser = NikonRawParser(message)
+            autoAddMeasurement(message)
+            Log.i("BluetoothTest", "va: ${parser.parseVA()}; ha: ${parser.parseHA()}; sd: ${parser.parseSD()}")
         }
     }
 
@@ -247,5 +249,10 @@ class MapViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        bluetooth.setOnDataReceivedListener { _, _ ->  }
     }
 }

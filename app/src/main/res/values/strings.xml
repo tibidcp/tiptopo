@@ -28,4 +28,7 @@
     <string name="add_first_point">Add first point</string>
     <string name="delete">Delete</string>
     <string name="bluetooth_button_description">Bluetooth button</string>
+    <string name="add_quick_station">Add quick station</string>
+    <string name="backsight">Backsight</string>
+    <string name="waiting_for_measurement">Waiting for measurement…</string>
 </resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.geometry.Point
+import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.parser.IDataParser
 import org.osgeo.proj4j.BasicCoordinateTransform
@@ -31,7 +32,7 @@ fun LatLng.toPoint(): Point {
 
     transform.transform(srcCoord, dstCoord)
 
-    return Point(dstCoord.x, dstCoord.y)
+    return Point(dstCoord.y, dstCoord.x)
 }
 
 fun Point.toLatLng(): LatLng {
@@ -45,12 +46,12 @@ fun Point.toLatLng(): LatLng {
 
     val transform = BasicCoordinateTransform(src, dst)
 
-    val srcCoord = ProjCoordinate(this.x, this.y)
+    val srcCoord = ProjCoordinate(this.y, this.x)
     val dstCoord = ProjCoordinate()
 
     transform.transform(srcCoord, dstCoord)
 
-    return LatLng(dstCoord.x, dstCoord.y)
+    return LatLng(dstCoord.y, dstCoord.x)
 }
 
 fun Point.directAngTo(pointB: Point): Double {
@@ -80,6 +81,16 @@ fun Point.directAngTo(pointB: Point): Double {
     }
 
     return directAng
+}
+
+fun Measurement.directAngTo(measurementB: Measurement): Double {
+    val measurementA = this
+    val latLngA = LatLng(measurementA.latitude, measurementA.longitude)
+    val latLngB = LatLng(measurementB.latitude, measurementB.longitude)
+    val pointA = latLngA.toPoint()
+    val pointB = latLngB.toPoint()
+
+    return pointA.directAngTo(pointB)
 }
 
 fun Station.getCoordinate(ha: Double, va: Double, sd: Double): Point {

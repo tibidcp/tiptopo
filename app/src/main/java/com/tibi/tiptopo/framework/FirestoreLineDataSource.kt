@@ -56,7 +56,7 @@ class FirestoreLineDataSource @Inject constructor(
         val subscription = result.addSnapshotListener { snapshot, _ ->
             if (!snapshot!!.isEmpty) {
                 val linetList = snapshot.map { it.toObject<Line>() }.toList()
-                offer(Resource.Success(linetList))
+                trySend(Resource.Success(linetList))
             }
         }
         awaitClose { subscription.remove() }
