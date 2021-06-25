@@ -22,4 +22,8 @@ class MeasurementRepository @Inject constructor(
     suspend fun getAllMeasurements() = withContext(ioDispatcher) {
         dataSource.getAllMeasurements()
     }
+
+    suspend fun deleteMeasurement(measurementId: String) = withContext(ioDispatcher) {
+        dataSource.deleteMeasurement(measurementId)
+    }
 }

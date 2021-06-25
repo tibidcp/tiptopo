@@ -45,7 +45,13 @@ class MapViewModel @Inject constructor(
     var currentLine by mutableStateOf<Resource<Line>>(Resource.Loading())
         private set
 
+    var selectedMeasurementId by mutableStateOf("")
+        private set
+
     var drawLine by mutableStateOf(false)
+        private set
+
+    var showMeasurements by mutableStateOf(true)
         private set
 
     var setBounds by mutableStateOf(false)
@@ -101,6 +107,14 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    fun onResetCurrentPointObject() {
+        currentPointObject = PointType.Point
+    }
+
+    fun onShowMeasurementsChangeState() {
+        showMeasurements = !showMeasurements
+    }
+
     fun addMeasurement(measurement: Measurement, stationId: String) {
         viewModelScope.launch {
             measurement.stationId = stationId
@@ -127,6 +141,14 @@ class MapViewModel @Inject constructor(
                 Resource.Failure(e)
             }
         }
+    }
+
+    fun onSetSelectedMeasurementId(id: String) {
+        selectedMeasurementId = id
+    }
+
+    fun onResetSelectedMeasurementId() {
+        selectedMeasurementId = ""
     }
 
     fun onSetBounds() {
@@ -170,6 +192,12 @@ class MapViewModel @Inject constructor(
     fun onDeleteLine(lineId: String) {
         viewModelScope.launch {
             lineRepository.deleteLine(lineId)
+        }
+    }
+
+    fun onDeleteMeasurement(measurementId: String) {
+        viewModelScope.launch {
+            measurementRepository.deleteMeasurement(measurementId)
         }
     }
 

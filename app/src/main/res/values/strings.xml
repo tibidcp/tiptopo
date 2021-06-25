@@ -31,4 +31,6 @@
     <string name="add_quick_station">Add quick station</string>
     <string name="backsight">Backsight</string>
     <string name="waiting_for_measurement">Waiting for measurement…</string>
+    <string name="edit_point">Edit point</string>
+    <string name="show_or_hide_measurements">Show or hide measurements</string>
 </resources>

@@ -9,4 +9,5 @@ interface MeasurementDataSource {
     suspend fun getMeasurement(measurementId: String): Resource<Measurement>
     suspend fun updateMeasurement(measurement: Measurement): Resource<Measurement>
     suspend fun getAllMeasurements(): Flow<Resource<List<Measurement>>>
+    suspend fun deleteMeasurement(measurementId: String)
 }

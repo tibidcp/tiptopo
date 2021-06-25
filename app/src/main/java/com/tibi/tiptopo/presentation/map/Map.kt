@@ -97,6 +97,7 @@ fun MapScreen(
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
     val showToast = mapViewModel.showToast
+    val selectedMeasurementId = mapViewModel.selectedMeasurementId
 
     if (showToast.isNotBlank()) {
         LocalContext.current.toast(showToast)
@@ -138,15 +139,46 @@ fun MapScreen(
                             }
                         }
                     )
-                false -> TopAppBar(
-                        title = { Text(text = project.name) },
-                        actions = {
-                            val context = LocalContext.current
-                            IconButton(onClick = { AuthUI.getInstance().signOut(context) }) {
-                                Icon(Icons.Default.Logout, stringResource(R.string.logout_description))
+                false -> {
+                    if (selectedMeasurementId.isNotBlank()) {
+                        TopAppBar(
+                            title = { Text(text = stringResource(R.string.edit_point)) },
+                            actions = {
+                                IconButton(onClick = {
+                                    mapViewModel.onDeleteMeasurement(selectedMeasurementId)
+                                    mapViewModel.onResetSelectedMeasurementId()
+                                }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        stringResource(R.string.delete)
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    mapViewModel.onResetSelectedMeasurementId()
+                                }) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        stringResource(R.string.complete_line_description)
+                                    )
+                                }
                             }
-                        }
-                    )
+                        )
+                    } else
+                    {
+                        TopAppBar(
+                            title = { Text(text = project.name) },
+                            actions = {
+                                val context = LocalContext.current
+                                IconButton(onClick = { AuthUI.getInstance().signOut(context) }) {
+                                    Icon(
+                                        Icons.Default.Logout,
+                                        stringResource(R.string.logout_description)
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
 
@@ -189,6 +221,7 @@ private fun MapViewContainer(
     val setBounds = mapViewModel.setBounds
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
+    val showMeasurements = mapViewModel.showMeasurements
 
     val showDeviceList = mapViewModel.showDeviceList
     val openDeviceListActivity =
@@ -242,7 +275,15 @@ private fun MapViewContainer(
                             is Resource.Failure -> {  }
                         }
                     } else {
-                        setOnMarkerClickListener { false }
+                        setOnMarkerClickListener { marker ->
+                            mapViewModel.onSetSelectedMeasurementId(marker.tag.toString())
+                            true
+                        }
+                    }
+
+                    setOnPolylineClickListener { line ->
+                        mapViewModel.onSetCurrentLine(line.tag.toString())
+                        mapViewModel.onDrawLine()
                     }
 
                     setOnMapLongClickListener {
@@ -268,17 +309,19 @@ private fun MapViewContainer(
                                 mapViewModel.onSetBoundsComplete()
                             }
 
-                            measurements.data.forEach { measurement ->
-                                addMarker {
-                                    position(LatLng(measurement.latitude, measurement.longitude))
-                                    title(measurement.name)
-                                    icon(bitmapDescriptorFromVector(
-                                        context,
-                                        measurement.type.vectorResId,
-                                        Color.BLACK
-                                    ))
-                                    anchor(measurement.type.anchorX, measurement.type.anchorY)
-                                }.tag = measurement.id
+                            if (showMeasurements) {
+                                measurements.data.forEach { measurement ->
+                                    addMarker {
+                                        position(LatLng(measurement.latitude, measurement.longitude))
+                                        title(measurement.name)
+                                        icon(bitmapDescriptorFromVector(
+                                            context,
+                                            measurement.type.vectorResId,
+                                            Color.BLACK
+                                        ))
+                                        anchor(measurement.type.anchorX, measurement.type.anchorY)
+                                    }.tag = measurement.id
+                                }
                             }
 
                             when (lines) {
@@ -295,7 +338,7 @@ private fun MapViewContainer(
                                                         .first { it.id == vertex.measurementId }
                                                     LatLng(measurement.latitude, measurement.longitude)
                                                 }.forEach { add(it) }
-                                        }
+                                        }.tag = line.id
                                     }
                                 }
                                 is Resource.Failure -> {  }
@@ -321,6 +364,13 @@ private fun MapViewContainer(
                 Icon(
                     Icons.Default.Bluetooth,
                     stringResource(R.string.bluetooth_button_description)
+                )
+            }
+
+            Button(onClick = { mapViewModel.onShowMeasurementsChangeState() }, Modifier.padding(8.dp)) {
+                Icon(
+                    Icons.Default.Lightbulb,
+                    stringResource(R.string.show_or_hide_measurements)
                 )
             }
         }
@@ -415,7 +465,10 @@ fun ColorPicker(mapViewModel: MapViewModel) {
 @Composable
 fun LineDrawing(mapViewModel: MapViewModel) {
     FloatingActionButton(
-        onClick = { mapViewModel.onDrawLine() },
+        onClick = {
+            mapViewModel.onResetCurrentPointObject()
+            mapViewModel.onDrawLine()
+                  },
         modifier = Modifier.padding(8.dp)
     ) {
         Text(text = "Line")

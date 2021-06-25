@@ -61,4 +61,8 @@ class FirestoreMeasurementDataSource @Inject constructor(
         }
         awaitClose { subscription.remove() }
     }
+
+    override suspend fun deleteMeasurement(measurementId: String) {
+        firestore.collection(path).document(measurementId).delete()
+    }
 }
