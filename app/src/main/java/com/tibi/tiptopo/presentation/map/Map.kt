@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -145,8 +144,15 @@ fun MapScreen(
                             title = { Text(text = stringResource(R.string.edit_point)) },
                             actions = {
                                 IconButton(onClick = {
-                                    mapViewModel.onDeleteMeasurement(selectedMeasurementId)
-                                    mapViewModel.onResetSelectedMeasurementId()
+                                    mapViewModel.onUpdateSelectedMeasurementType()
+                                }) {
+                                    Icon(
+                                        Icons.Default.Update,
+                                        "Update measurement type"
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    mapViewModel.onDeleteSelectedMeasurement()
                                 }) {
                                     Icon(
                                         Icons.Default.Delete,
@@ -158,7 +164,7 @@ fun MapScreen(
                                 }) {
                                     Icon(
                                         Icons.Default.Check,
-                                        stringResource(R.string.complete_line_description)
+                                        stringResource(R.string.end_measurement_edit)
                                     )
                                 }
                             }

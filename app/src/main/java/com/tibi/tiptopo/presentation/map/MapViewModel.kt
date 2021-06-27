@@ -195,10 +195,11 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun onDeleteMeasurement(measurementId: String) {
+    fun onDeleteSelectedMeasurement() {
         viewModelScope.launch {
-            measurementRepository.deleteMeasurement(measurementId)
+            measurementRepository.deleteMeasurement(selectedMeasurementId)
         }
+        onResetSelectedMeasurementId()
     }
 
     fun onConnectBluetooth() {
@@ -282,5 +283,16 @@ class MapViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         bluetooth.setOnDataReceivedListener { _, _ ->  }
+    }
+
+    fun onUpdateSelectedMeasurementType() {
+        viewModelScope.launch {
+            val measurement = measurementRepository.getMeasurement(selectedMeasurementId)
+            if (measurement is Resource.Success) {
+                measurement.data.type = currentPointObject
+                measurementRepository.updateMeasurement(measurement.data)
+            }
+        }
+        onResetSelectedMeasurementId()
     }
 }
