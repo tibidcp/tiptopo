@@ -12,6 +12,8 @@ import org.osgeo.proj4j.CRSFactory
 import org.osgeo.proj4j.ProjCoordinate
 import kotlin.math.*
 
+const val SCALE = 10.0
+
 fun Context.toast(message: CharSequence) =
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
@@ -32,7 +34,7 @@ fun LatLng.toPoint(): Point {
 
     transform.transform(srcCoord, dstCoord)
 
-    return Point(dstCoord.y, dstCoord.x)
+    return Point(dstCoord.y / SCALE, dstCoord.x / SCALE)
 }
 
 fun Point.toLatLng(): LatLng {
@@ -46,7 +48,7 @@ fun Point.toLatLng(): LatLng {
 
     val transform = BasicCoordinateTransform(src, dst)
 
-    val srcCoord = ProjCoordinate(this.y, this.x)
+    val srcCoord = ProjCoordinate(this.y * SCALE, this.x * SCALE)
     val dstCoord = ProjCoordinate()
 
     transform.transform(srcCoord, dstCoord)
