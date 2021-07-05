@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -29,14 +30,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import app.akexorcist.bluetotohspp.library.DeviceList
-import com.firebase.ui.auth.AuthUI
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.*
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
@@ -66,7 +63,7 @@ fun Map(
     onSetStation: () -> Unit,
     onLogOut: () -> Unit
 ) {
-    mapViewModel.setBluetoothDataListener()
+    mapViewModel.setBluetoothDataAndConnectionListener()
 
     val authState: FirebaseUserLiveData.AuthenticationState by mapViewModel.authenticationState
         .observeAsState(FirebaseUserLiveData.AuthenticationState.AUTHENTICATED)
@@ -119,7 +116,6 @@ fun MapScreen(
                                 if (currentLine is Resource.Success) {
                                     mapViewModel.onDeleteLine(currentLine.data.id)
                                     mapViewModel.onDrawLineComplete()
-                                    mapViewModel.onResetCurrentLine()
                                 }
                             }) {
                                 Icon(
@@ -129,7 +125,6 @@ fun MapScreen(
                             }
                             IconButton(onClick = {
                                 mapViewModel.onDrawLineComplete()
-                                mapViewModel.onResetCurrentLine()
                             }) {
                                 Icon(
                                     Icons.Default.Check,
@@ -172,16 +167,7 @@ fun MapScreen(
                     } else
                     {
                         TopAppBar(
-                            title = { Text(text = project.name) },
-                            actions = {
-                                val context = LocalContext.current
-                                IconButton(onClick = { AuthUI.getInstance().signOut(context) }) {
-                                    Icon(
-                                        Icons.Default.Logout,
-                                        stringResource(R.string.logout_description)
-                                    )
-                                }
-                            }
+                            title = { Text(text = project.name) }
                         )
                     }
                 }
@@ -229,6 +215,7 @@ private fun MapViewContainer(
     val drawLine = mapViewModel.drawLine
     val showMeasurements = mapViewModel.showMeasurements
 
+
     val showDeviceList = mapViewModel.showDeviceList
     val openDeviceListActivity =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -270,10 +257,15 @@ private fun MapViewContainer(
                             }
                             is Resource.Loading -> {
                                 setOnMarkerClickListener { marker ->
-                                    val line = Line(vertices = listOf(Vertex(
-                                        measurementId = marker.tag.toString(),
-                                        index = 0
-                                    )))
+                                    val line = Line(
+                                        vertices = listOf(
+                                            Vertex(
+                                                measurementId = marker.tag.toString(),
+                                                index = 0
+                                            )
+                                        ),
+                                        type = mapViewModel.currentLineType ?: LineType.Continuous
+                                    )
                                     mapViewModel.addLine(line)
                                     true
                                 }
@@ -283,8 +275,10 @@ private fun MapViewContainer(
                     } else {
                         setOnMarkerClickListener { marker ->
                             mapViewModel.onSetSelectedMeasurementId(marker.tag.toString())
+                            marker.showInfoWindow()
                             true
                         }
+                        setOnMapClickListener { mapViewModel.onResetSelectedMeasurementId() }
                     }
 
                     setOnPolylineClickListener { line ->
@@ -292,17 +286,17 @@ private fun MapViewContainer(
                         mapViewModel.onDrawLine()
                     }
 
-                    setOnMapLongClickListener {
-                        mapViewModel.addMeasurement(
-                            Measurement(
-                                latitude = it.latitude,
-                                longitude = it.longitude,
-                                type = mapViewModel.currentPointObject,
-                                name = it.toString()
-                            ),
-                            station.id
-                        )
-                    }
+//                    setOnMapLongClickListener {
+//                        mapViewModel.addMeasurement(
+//                            Measurement(
+//                                latitude = it.latitude,
+//                                longitude = it.longitude,
+//                                type = mapViewModel.currentPointObject,
+//                                name = it.toString()
+//                            ),
+//                            station.id
+//                        )
+//                    }
 
                     when (measurements) {
                         is Resource.Success -> {
@@ -319,7 +313,7 @@ private fun MapViewContainer(
                                 measurements.data.forEach { measurement ->
                                     addMarker {
                                         position(LatLng(measurement.latitude, measurement.longitude))
-                                        title(measurement.name)
+                                        title(measurement.number.toString())
                                         icon(bitmapDescriptorFromVector(
                                             context,
                                             measurement.type.vectorResId,
@@ -336,9 +330,25 @@ private fun MapViewContainer(
                                         addPolyline {
                                             clickable(true)
                                             color(line.color)
+                                            width(5f)
+
+                                            when (line.type) {
+                                                LineType.Continuous -> { }
+                                                LineType.Dashed -> pattern(listOf(Dash(20F),
+                                                    Gap(10F)))
+                                                LineType.Dotted -> pattern(listOf(Dot(),
+                                                    Gap(10F)))
+                                                LineType.DashDotted ->  pattern(listOf(
+                                                    Dash(20F), Gap(10F),
+                                                    Dot(), Gap(10F)
+                                                ))
+                                            }
+
                                             line.vertices
                                                 .sortedBy { it.index }
-                                                .filter { vertex -> measurements.data.any { it.id == vertex.measurementId} }
+                                                .filter { vertex -> measurements.data.any {
+                                                    it.id == vertex.measurementId}
+                                                }
                                                 .map { vertex ->
                                                     val measurement = measurements.data
                                                         .first { it.id == vertex.measurementId }
@@ -398,6 +408,53 @@ fun DrawingTools(mapViewModel: MapViewModel) {
         LineDrawing(mapViewModel)
         ColorPicker(mapViewModel)
         PointDrawing(mapViewModel)
+    }
+}
+
+
+@ExperimentalFoundationApi
+@ExperimentalAnimationApi
+@Composable
+fun LineDrawing(mapViewModel: MapViewModel) {
+    var showLines by remember { mutableStateOf(false) }
+    val lines = remember { LineType.values() }
+    val currentLineType = mapViewModel.currentLineType
+
+    AnimatedVisibility(visible = showLines) {
+        LazyVerticalGrid(cells = GridCells.Fixed(6)) {
+            items(lines) { line ->
+                FloatingActionButton(
+                    onClick = {
+                        mapViewModel.onResetCurrentPointObject()
+                        mapViewModel.onSetCurrentLineType(line)
+                        mapViewModel.onDrawLine()
+                        showLines = false
+                    },
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(line.vectorResId),
+                        contentDescription = stringResource(line.contentDescription)
+                    )
+                }
+            }
+        }
+    }
+
+    FloatingActionButton(
+        onClick = { showLines = !showLines },
+        modifier = Modifier.padding(8.dp)
+    ) {
+        if (currentLineType == null) {
+            Text(text = "Line")
+        } else {
+            Icon(
+                painter = painterResource(id = currentLineType.vectorResId),
+                contentDescription = stringResource(
+                    id = currentLineType.contentDescription
+                )
+            )
+        }
     }
 }
 
@@ -465,19 +522,6 @@ fun ColorPicker(mapViewModel: MapViewModel) {
         backgroundColor = androidx.compose.ui.graphics.Color(mapViewModel.currentColor),
         modifier = Modifier.padding(8.dp)
     ) {
-    }
-}
-
-@Composable
-fun LineDrawing(mapViewModel: MapViewModel) {
-    FloatingActionButton(
-        onClick = {
-            mapViewModel.onResetCurrentPointObject()
-            mapViewModel.onDrawLine()
-                  },
-        modifier = Modifier.padding(8.dp)
-    ) {
-        Text(text = "Line")
     }
 }
 

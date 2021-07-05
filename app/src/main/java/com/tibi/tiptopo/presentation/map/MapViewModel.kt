@@ -63,6 +63,9 @@ class MapViewModel @Inject constructor(
     var currentPointObject by mutableStateOf(PointType.Point)
         private set
 
+    var currentLineType: LineType? by mutableStateOf(null)
+        private set
+
     var currentColor by mutableStateOf(Color.BLACK)
         private set
 
@@ -105,6 +108,14 @@ class MapViewModel @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Failure(e))
         }
+    }
+
+    fun onSetCurrentLineType(lineType: LineType) {
+        currentLineType = lineType
+    }
+
+    private fun onResetCurrentLineType() {
+        currentLineType = null
     }
 
     fun onResetCurrentPointObject() {
@@ -187,6 +198,8 @@ class MapViewModel @Inject constructor(
 
     fun onDrawLineComplete() {
         drawLine = false
+        onResetCurrentLine()
+        onResetCurrentLineType()
     }
 
     fun onDeleteLine(lineId: String) {
@@ -230,7 +243,7 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun setBluetoothDataListener() {
+    fun setBluetoothDataAndConnectionListener() {
         bluetooth.setOnDataReceivedListener { data, message ->
             Log.i("BluetoothTest", "data: $data; message: $message")
             val parser = NikonRawParser(message)
