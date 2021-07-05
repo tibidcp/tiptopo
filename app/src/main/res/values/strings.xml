@@ -38,4 +38,7 @@
     <string name="dashed">Dashed</string>
     <string name="dotted">Dotted</string>
     <string name="dash_dotted">Dash Dotted</string>
+    <string name="delete_last_vertex">Delete last vertex</string>
+    <string name="update_current_line_type_and_color">Update current line type and color</string>
+    <string name="reverse_current_line">Reverse current line</string>
 </resources>

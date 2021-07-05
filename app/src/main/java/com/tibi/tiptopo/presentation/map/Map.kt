@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -112,6 +113,36 @@ fun MapScreen(
                         }
                         ) },
                         actions = {
+                            IconButton(onClick = {
+                                if (currentLine is Resource.Success) {
+                                    mapViewModel.onDeleteLastVertex(currentLine.data)
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.AutoFixOff,
+                                    stringResource(R.string.delete_last_vertex)
+                                )
+                            }
+                            IconButton(onClick = {
+                                if (currentLine is Resource.Success) {
+                                    mapViewModel.onReverseCurrentLine(currentLine.data)
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.CompareArrows,
+                                    stringResource(R.string.reverse_current_line)
+                                )
+                            }
+                            IconButton(onClick = {
+                                if (currentLine is Resource.Success) {
+                                    mapViewModel.onUpdateCurrentLineTypeAndColor(currentLine.data)
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.Update,
+                                    stringResource(R.string.update_current_line_type_and_color)
+                                )
+                            }
                             IconButton(onClick = {
                                 if (currentLine is Resource.Success) {
                                     mapViewModel.onDeleteLine(currentLine.data.id)
@@ -302,7 +333,9 @@ private fun MapViewContainer(
                         is Resource.Success -> {
                             if (setBounds) {
                                 val bounds = LatLngBounds.builder()
-                                measurements.data.forEach {
+                                measurements
+                                    .data
+                                    .forEach {
                                     bounds.include(LatLng(it.latitude, it.longitude))
                                     animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 20))
                                 }
@@ -385,7 +418,7 @@ private fun MapViewContainer(
 
             Button(onClick = { mapViewModel.onShowMeasurementsChangeState() }, Modifier.padding(8.dp)) {
                 Icon(
-                    Icons.Default.Lightbulb,
+                    if (showMeasurements) Icons.Filled.Lightbulb else Icons.Outlined.Lightbulb,
                     stringResource(R.string.show_or_hide_measurements)
                 )
             }

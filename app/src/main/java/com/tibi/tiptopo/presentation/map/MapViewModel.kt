@@ -308,4 +308,37 @@ class MapViewModel @Inject constructor(
         }
         onResetSelectedMeasurementId()
     }
+
+    fun onDeleteLastVertex(line: Line) {
+        val lastVertex = line.vertices.maxByOrNull { it.index }
+        if (lastVertex != null) {
+            val vertices = line.vertices.toMutableList()
+            vertices.remove(lastVertex)
+            line.vertices = vertices
+            updateLine(line)
+        }
+    }
+
+    fun onUpdateCurrentLineTypeAndColor(line: Line) {
+        val lineType = currentLineType
+        if (lineType != null) {
+            line.type = lineType
+        }
+        line.color = currentColor
+        updateLine(line)
+    }
+
+    fun onReverseCurrentLine(line: Line) {
+        if (line.vertices.size < 2) {
+            return
+        }
+        val maxIndexVertex = line.vertices.maxByOrNull { it.index }
+        if (maxIndexVertex != null) {
+            val maxIndex = maxIndexVertex.index
+            line.vertices.forEach { vertex ->
+                vertex.index = maxIndex - vertex.index
+            }
+            updateLine(line)
+        }
+    }
 }
