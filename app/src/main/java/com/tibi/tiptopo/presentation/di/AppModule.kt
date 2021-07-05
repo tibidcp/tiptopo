@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.MainDestinations.ProjectIdKey
 import com.tibi.tiptopo.data.line.LineDataSource
 import com.tibi.tiptopo.data.measurement.MeasurementDataSource
@@ -26,6 +29,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+
+
+
 
 @InstallIn(ViewModelComponent::class)
 @Module
@@ -88,10 +95,10 @@ object FirebaseUserLivedataModule {
 }
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ViewModelComponent::class)
 object ProjectIdModule {
-    @Singleton
     @Provides
+    @ViewModelScoped
     @CurrentProjectId
     fun providesProjectId(@ApplicationContext context: Context) =
         context
@@ -124,4 +131,19 @@ object BluetoothModule {
     @Provides
     fun provideBluetooth(@ApplicationContext context: Context) =
         BluetoothSPP(context)
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object FirestoreModule {
+    @Singleton
+    @Provides
+    fun provideFirestore(): FirebaseFirestore {
+        val firestore = Firebase.firestore
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
+        firestore.firestoreSettings = settings
+        return firestore
+    }
 }

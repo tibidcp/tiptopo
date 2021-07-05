@@ -1,6 +1,7 @@
 package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
@@ -16,10 +17,10 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirestoreMeasurementDataSource @Inject constructor(
-    @CurrentProjectId private val projectId: String
+    @CurrentProjectId private val projectId: String,
+    private val firestore: FirebaseFirestore
 ) : MeasurementDataSource {
 
-    private val firestore = Firebase.firestore
     private val path =
         "users/${Firebase.auth.currentUser?.uid}/projects/$projectId/measurements"
 
