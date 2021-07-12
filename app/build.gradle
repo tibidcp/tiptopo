@@ -136,4 +136,8 @@ dependencies {
     implementation 'org.osgeo:proj4j:0.1.0'
     //bluetooth
     implementation 'com.akexorcist:bluetoothspp:1.0.0'
+
+    //moshi
+    implementation("com.squareup.moshi:moshi:1.12.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.12.0")
 }

@@ -2,21 +2,22 @@ package com.tibi.tiptopo.presentation.map
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.*
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
 import app.akexorcist.bluetotohspp.library.BluetoothState
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.Polyline
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
@@ -33,8 +34,6 @@ import com.tibi.tiptopo.presentation.toRawDegrees
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.OutputStreamWriter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -65,7 +64,13 @@ class MapViewModel @Inject constructor(
     var updateCurrentMarker by mutableStateOf(false)
         private set
 
-    var sendText by mutableStateOf("")
+    var rawText by mutableStateOf("")
+        private set
+
+    var linearJsonText by mutableStateOf("")
+        private set
+
+    var measurementJsonText by mutableStateOf("")
         private set
 
     var deleteCurrentMarker by mutableStateOf(false)
@@ -153,15 +158,25 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun onSendText(text: String) {
-        sendText = text
+    private fun onSetRawText(text: String) {
+        rawText = text
     }
 
-    fun onSendTextComplete() {
-        sendText = ""
+    private fun onSetLinearJsonText(text: String) {
+        linearJsonText = text
     }
 
-    fun onSetNewMeasurement(measurement: Measurement) {
+    private fun onSetMeasurementJsonText(text: String) {
+        measurementJsonText = text
+    }
+
+    fun onResetExportTexts() {
+        rawText = ""
+        linearJsonText = ""
+        measurementJsonText = ""
+    }
+
+    private fun onSetNewMeasurement(measurement: Measurement) {
         newMeasurement = measurement
     }
 
@@ -185,25 +200,19 @@ class MapViewModel @Inject constructor(
         currentMarker = null
     }
 
-    fun exportRawFile(stations: List<Station>, measurements: List<Measurement>) {
+    fun exportRawFile(stations: List<Station>, measurements: List<Measurement>, lines: List<Line>) {
 
-        val builder = StringBuilder()
+        val builderRaw = StringBuilder()
 
         stations.sortedBy { it.date }.forEach { station ->
             val backsight = measurements.firstOrNull { it.id == station.backsightId }
-            builder.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")
-//            Log.d("exportRawFile", "ST,${station.name},,,,0.000,0.0000,0.0000")
+            builderRaw.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")
             if (backsight != null) {
-                builder.append(
+                builderRaw.append(
                     "SS,S${backsight.number}," +
                             "${station.hi.format()},${station.backsightSD.format()}," +
                             "${station.backsightHA.toRawDegrees()},${station.backsightVA.toRawDegrees()},00:00:00,\n"
                 )
-//                Log.d(
-//                    "exportRawFile", "SS,S${backsight.number}," +
-//                            "${station.hi.format()},${station.backsightSD.format()}," +
-//                            "${station.backsightHA.toRawDegrees()},${station.backsightVA.toRawDegrees()},00:00:00,"
-//                )
             }
             measurements.filter { it.stationId == station.id }.sortedBy { it.date }
                 .forEach {
@@ -211,20 +220,31 @@ class MapViewModel @Inject constructor(
                     if (it.type == PointType.Station) {
                         name = "S$name"
                     }
-                    builder.append(
+                    builderRaw.append(
                         "SS,$name," +
                                 "${station.hi.format()},${it.sd.format()}," +
                                 "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,\n"
                     )
-//                    Log.d(
-//                        "exportRawFile", "SS,$name," +
-//                                "${station.hi.format()},${it.sd.format()}," +
-//                                "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,"
-//                    )
                 }
         }
 
-        onSendText(builder.toString())
+        val moshi = Moshi.Builder()
+            .addLast(KotlinJsonAdapterFactory())
+            .build()
+        val type1 = Types.newParameterizedType(List::class.java, Measurement::class.java)
+        val jsonAdapter1: JsonAdapter<List<Measurement>> = moshi.adapter(type1)
+        val measurementJson = jsonAdapter1.indent("  ").toJson(measurements)
+        onSetMeasurementJsonText(measurementJson)
+
+        val type2 = Types.newParameterizedType(List::class.java, Line::class.java, Vertex::class.java)
+        val jsonAdapter2: JsonAdapter<List<Line>> = moshi.adapter(type2)
+        val linearJson = jsonAdapter2.indent("  ").toJson(lines)
+        onSetLinearJsonText(linearJson)
+
+
+        measurements.sortedBy { it.date }
+
+        onSetRawText(builderRaw.toString())
     }
 
     fun onSetCurrentLineType(lineType: LineType) {

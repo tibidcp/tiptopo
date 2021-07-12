@@ -1,6 +1,6 @@
 package com.tibi.tiptopo.presentation.map
 
-import android.app.Application
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.DrawableCompat
 import app.akexorcist.bluetotohspp.library.DeviceList
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -45,7 +46,8 @@ import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
-import java.io.OutputStreamWriter
+import java.io.*
+
 
 val colorList = listOf(
     Color.BLACK,
@@ -94,23 +96,65 @@ fun MapScreen(
     val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
     val stations = mapViewModel.stations.observeAsState(Resource.Loading()).value
     val measurements = mapViewModel.measurements.observeAsState(Resource.Loading()).value
+    val lines = mapViewModel.lines.observeAsState(Resource.Loading()).value
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
     val showToast = mapViewModel.showToast
     val selectedMeasurementId = mapViewModel.selectedMeasurementId
-    val sendText = mapViewModel.sendText
+    val rawText = mapViewModel.rawText
+    val measurementJson = mapViewModel.measurementJsonText
+    val linearJson = mapViewModel.linearJsonText
 
-    if (sendText.isNotBlank()) {
-        mapViewModel.onSendTextComplete()
+    if (rawText.isNotBlank() && measurementJson.isNotBlank() && linearJson.isNotBlank()) {
+
+        val context = LocalContext.current
+
+        val docPath = File(context.filesDir, "docs")
+        val docFile = File(docPath, "raw.rdf")
+        val docUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", docFile)
+
+
+        val measurementFile = File(docPath, "measurements.json")
+        val measurementUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", measurementFile)
+
+        val linearFile = File(docPath, "lines.json")
+        val linearUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", linearFile)
+
+        val uris = arrayListOf(docUri, measurementUri, linearUri)
 
         val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, sendText)
-            type = "text/plain"
+            action = Intent.ACTION_SEND_MULTIPLE
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            type = "text/*"
         }
 
         val shareIntent = Intent.createChooser(sendIntent, null)
-        LocalContext.current.startActivity(shareIntent)
+
+        val dir = context.filesDir.absolutePath + File.separator + "docs"
+        val projDir = File(dir)
+        if (!projDir.exists()) {
+            projDir.mkdirs()
+        }
+        val file = File(projDir, "raw.rdf")
+        val stream = FileOutputStream(file)
+        stream.use {
+            stream.write(rawText.toByteArray())
+        }
+
+        val fileMeasurement = File(projDir, "measurements.json")
+        val streamMeasurement = FileOutputStream(fileMeasurement)
+        streamMeasurement.use {
+            streamMeasurement.write(measurementJson.toByteArray())
+        }
+
+        val fileLinear = File(projDir, "lines.json")
+        val streamLinear = FileOutputStream(fileLinear)
+        streamLinear.use {
+            streamLinear.write(linearJson.toByteArray())
+        }
+
+        context.startActivity(shareIntent)
+        mapViewModel.onResetExportTexts()
     }
 
     if (showToast.isNotBlank()) {
@@ -220,8 +264,8 @@ fun MapScreen(
                             title = { Text(text = project.name) },
                             actions = {
                                 IconButton(onClick = {
-                                    if (stations is Resource.Success && measurements is Resource.Success) {
-                                        mapViewModel.exportRawFile(stations.data, measurements.data)
+                                    if (stations is Resource.Success && measurements is Resource.Success && lines is Resource.Success) {
+                                        mapViewModel.exportRawFile(stations.data, measurements.data, lines.data)
                                     }
                                 }) {
                                     Icon(

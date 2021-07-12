@@ -1,6 +1,7 @@
 package com.tibi.tiptopo.domain
 
 import androidx.annotation.StringRes
+import com.squareup.moshi.JsonClass
 import com.tibi.tiptopo.R
 
 data class Measurement(
