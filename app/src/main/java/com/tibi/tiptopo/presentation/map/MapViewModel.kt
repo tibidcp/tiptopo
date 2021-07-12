@@ -1,19 +1,22 @@
 package com.tibi.tiptopo.presentation.map
 
 import android.app.Activity
+import android.app.Application
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.liveData
-import androidx.lifecycle.viewModelScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.*
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
 import app.akexorcist.bluetotohspp.library.BluetoothState
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.Polyline
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
@@ -21,13 +24,17 @@ import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.presentation.format
 import com.tibi.tiptopo.presentation.getCoordinate
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import com.tibi.tiptopo.presentation.toLatLng
+import com.tibi.tiptopo.presentation.toRawDegrees
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.OutputStreamWriter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,18 +44,43 @@ class MapViewModel @Inject constructor(
     private val measurementRepository: MeasurementRepository,
     private val lineRepository: LineRepository,
     private val bluetooth: BluetoothSPP,
-    @CurrentProjectId private val projectId: String
-) : ViewModel() {
+    @CurrentProjectId private val projectId: String,
+    application: Application
+) : AndroidViewModel(application) {
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
     var currentLine by mutableStateOf<Resource<Line>>(Resource.Loading())
         private set
 
+    var currentPolyline: Polyline? by mutableStateOf(null)
+        private set
+
+    var currentMarker: Marker? by mutableStateOf(null)
+        private set
+
+    var newMeasurement: Measurement? by mutableStateOf(null)
+        private set
+
+    var updateCurrentMarker by mutableStateOf(false)
+        private set
+
+    var sendText by mutableStateOf("")
+        private set
+
+    var deleteCurrentMarker by mutableStateOf(false)
+        private set
+
     var selectedMeasurementId by mutableStateOf("")
         private set
 
     var drawLine by mutableStateOf(false)
+        private set
+
+    var deleteCurrentPolyline by mutableStateOf(false)
+        private set
+
+    var refreshAll by mutableStateOf(false)
         private set
 
     var showMeasurements by mutableStateOf(true)
@@ -108,6 +140,91 @@ class MapViewModel @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Failure(e))
         }
+    }
+
+    val stations = liveData<Resource<List<Station>>> {
+        emit(Resource.Loading())
+        try {
+            stationRepository.getAllStations().collect {
+                emit(it)
+            }
+        } catch (e: Exception) {
+            emit(Resource.Failure(e))
+        }
+    }
+
+    fun onSendText(text: String) {
+        sendText = text
+    }
+
+    fun onSendTextComplete() {
+        sendText = ""
+    }
+
+    fun onSetNewMeasurement(measurement: Measurement) {
+        newMeasurement = measurement
+    }
+
+    fun onResetNewMeasurement() {
+        newMeasurement = null
+    }
+
+    fun onSetCurrentPolyline(polyline: Polyline) {
+        currentPolyline = polyline
+    }
+
+    fun onResetCurrentPolyline() {
+        currentPolyline = null
+    }
+
+    fun onSetCurrentMarker(marker: Marker) {
+        currentMarker = marker
+    }
+
+    fun onResetCurrentMarker() {
+        currentMarker = null
+    }
+
+    fun exportRawFile(stations: List<Station>, measurements: List<Measurement>) {
+
+        val builder = StringBuilder()
+
+        stations.sortedBy { it.date }.forEach { station ->
+            val backsight = measurements.firstOrNull { it.id == station.backsightId }
+            builder.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")
+//            Log.d("exportRawFile", "ST,${station.name},,,,0.000,0.0000,0.0000")
+            if (backsight != null) {
+                builder.append(
+                    "SS,S${backsight.number}," +
+                            "${station.hi.format()},${station.backsightSD.format()}," +
+                            "${station.backsightHA.toRawDegrees()},${station.backsightVA.toRawDegrees()},00:00:00,\n"
+                )
+//                Log.d(
+//                    "exportRawFile", "SS,S${backsight.number}," +
+//                            "${station.hi.format()},${station.backsightSD.format()}," +
+//                            "${station.backsightHA.toRawDegrees()},${station.backsightVA.toRawDegrees()},00:00:00,"
+//                )
+            }
+            measurements.filter { it.stationId == station.id }.sortedBy { it.date }
+                .forEach {
+                    var name = it.number.toString()
+                    if (it.type == PointType.Station) {
+                        name = "S$name"
+                    }
+                    builder.append(
+                        "SS,$name," +
+                                "${station.hi.format()},${it.sd.format()}," +
+                                "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,\n"
+                    )
+//                    Log.d(
+//                        "exportRawFile", "SS,$name," +
+//                                "${station.hi.format()},${it.sd.format()}," +
+//                                "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,"
+//                    )
+                }
+        }
+
+        onSendText(builder.toString())
     }
 
     fun onSetCurrentLineType(lineType: LineType) {
@@ -170,6 +287,30 @@ class MapViewModel @Inject constructor(
         setBounds = false
     }
 
+    fun onUpdateCurrentMarker() {
+        updateCurrentMarker = true
+    }
+
+    fun onUpdateCurrentMarkerComplete() {
+        updateCurrentMarker = false
+    }
+
+    fun onDeleteCurrentMarker() {
+        deleteCurrentMarker = true
+    }
+
+    fun onDeleteCurrentMarkerComplete() {
+        deleteCurrentMarker = false
+    }
+
+    fun onRefreshAll() {
+        refreshAll = true
+    }
+
+    fun onRefreshAllComplete() {
+        refreshAll = false
+    }
+
     fun onSetCurrentPointObject(pointObject: PointType) {
         currentPointObject = pointObject
     }
@@ -203,12 +344,18 @@ class MapViewModel @Inject constructor(
     }
 
     fun onDeleteLine(lineId: String) {
+        deleteCurrentPolyline = true
         viewModelScope.launch {
             lineRepository.deleteLine(lineId)
         }
     }
 
+    fun onDeleteCurrentPolylineComplete() {
+        deleteCurrentPolyline = false
+    }
+
     fun onDeleteSelectedMeasurement() {
+        onDeleteCurrentMarker()
         viewModelScope.launch {
             measurementRepository.deleteMeasurement(selectedMeasurementId)
         }
@@ -275,19 +422,24 @@ class MapViewModel @Inject constructor(
             val sd = parser.parseSD()
             val latLng = station.getCoordinate(ha, va, sd).toLatLng()
 
+            val measurement =
+                Measurement(
+                    stationId = station.id,
+                    type = currentPointObject,
+                    number = maxNumber + 1,
+                    rawString = message,
+                    va = va,
+                    ha = ha,
+                    sd = sd,
+                    latitude = latLng.latitude,
+                    longitude = latLng.longitude
+                )
+
+            onSetNewMeasurement(measurement)
+
             viewModelScope.launch {
                 measurementRepository.addMeasurement(
-                    Measurement(
-                        stationId = station.id,
-                        type = currentPointObject,
-                        number = maxNumber + 1,
-                        rawString = message,
-                        va = va,
-                        ha = ha,
-                        sd = sd,
-                        latitude = latLng.latitude,
-                        longitude = latLng.longitude
-                    )
+                    measurement
                 )
             }
         }
@@ -299,6 +451,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onUpdateSelectedMeasurementType() {
+        onUpdateCurrentMarker()
         viewModelScope.launch {
             val measurement = measurementRepository.getMeasurement(selectedMeasurementId)
             if (measurement is Resource.Success) {

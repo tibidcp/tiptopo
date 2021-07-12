@@ -41,4 +41,6 @@
     <string name="delete_last_vertex">Delete last vertex</string>
     <string name="update_current_line_type_and_color">Update current line type and color</string>
     <string name="reverse_current_line">Reverse current line</string>
+    <string name="export_raw_file">Export raw file</string>
+    <string name="refresh_all">Refresh all</string>
 </resources>

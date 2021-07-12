@@ -132,3 +132,15 @@ fun Double.toDegrees(): Double {
 fun Double.toRadians(): Double {
     return Math.toRadians(this)
 }
+
+fun Double.toRawDegrees(): String {
+    val deg =  this.toInt()
+    val minSec = ((this - deg) * 60)
+    val min = minSec.toInt()
+    val sec = ((minSec - min) * 60).toInt()
+    return "$deg.${min.format()}${sec.format()}"
+}
+
+fun Double.format() = "%.3f".format(this)
+
+fun Int.format() = "%02d".format(this)

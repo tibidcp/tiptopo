@@ -1,11 +1,11 @@
 package com.tibi.tiptopo.presentation.map
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -45,6 +45,7 @@ import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
+import java.io.OutputStreamWriter
 
 val colorList = listOf(
     Color.BLACK,
@@ -91,10 +92,26 @@ fun MapScreen(
     mapViewModel: MapViewModel
 ) {
     val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
+    val stations = mapViewModel.stations.observeAsState(Resource.Loading()).value
+    val measurements = mapViewModel.measurements.observeAsState(Resource.Loading()).value
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
     val showToast = mapViewModel.showToast
     val selectedMeasurementId = mapViewModel.selectedMeasurementId
+    val sendText = mapViewModel.sendText
+
+    if (sendText.isNotBlank()) {
+        mapViewModel.onSendTextComplete()
+
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, sendText)
+            type = "text/plain"
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null)
+        LocalContext.current.startActivity(shareIntent)
+    }
 
     if (showToast.isNotBlank()) {
         LocalContext.current.toast(showToast)
@@ -156,6 +173,7 @@ fun MapScreen(
                             }
                             IconButton(onClick = {
                                 mapViewModel.onDrawLineComplete()
+                                mapViewModel.onResetCurrentPolyline()
                             }) {
                                 Icon(
                                     Icons.Default.Check,
@@ -187,6 +205,7 @@ fun MapScreen(
                                 }
                                 IconButton(onClick = {
                                     mapViewModel.onResetSelectedMeasurementId()
+                                    mapViewModel.onResetCurrentMarker()
                                 }) {
                                     Icon(
                                         Icons.Default.Check,
@@ -198,7 +217,27 @@ fun MapScreen(
                     } else
                     {
                         TopAppBar(
-                            title = { Text(text = project.name) }
+                            title = { Text(text = project.name) },
+                            actions = {
+                                IconButton(onClick = {
+                                    if (stations is Resource.Success && measurements is Resource.Success) {
+                                        mapViewModel.exportRawFile(stations.data, measurements.data)
+                                    }
+                                }) {
+                                    Icon(
+                                        Icons.Default.SendToMobile,
+                                        stringResource(R.string.export_raw_file)
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    mapViewModel.onRefreshAll()
+                                }) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        stringResource(R.string.refresh_all)
+                                    )
+                                }
+                            }
                         )
                     }
                 }
@@ -245,6 +284,13 @@ private fun MapViewContainer(
     val currentLine = mapViewModel.currentLine
     val drawLine = mapViewModel.drawLine
     val showMeasurements = mapViewModel.showMeasurements
+    val refreshAll = mapViewModel.refreshAll
+    val currentPolyline = mapViewModel.currentPolyline
+    val currentMarker = mapViewModel.currentMarker
+    val deletePolyline = mapViewModel.deleteCurrentPolyline
+    val updateCurrentMarker = mapViewModel.updateCurrentMarker
+    val deleteCurrentMarker = mapViewModel.deleteCurrentMarker
+    val newMeasurement = mapViewModel.newMeasurement
 
 
     val showDeviceList = mapViewModel.showDeviceList
@@ -264,7 +310,7 @@ private fun MapViewContainer(
                 val googleMap = mapView.awaitMap()
                 googleMap.apply {
                 mapType = GoogleMap.MAP_TYPE_NONE
-                    clear()
+                    //clear()
                     uiSettings.isZoomControlsEnabled = true
                     setPadding(0, 100, 0, 0)
 
@@ -305,16 +351,159 @@ private fun MapViewContainer(
                         }
                     } else {
                         setOnMarkerClickListener { marker ->
+                            mapViewModel.onSetCurrentMarker(marker)
                             mapViewModel.onSetSelectedMeasurementId(marker.tag.toString())
                             marker.showInfoWindow()
                             true
                         }
-                        setOnMapClickListener { mapViewModel.onResetSelectedMeasurementId() }
+                        setOnMapClickListener {
+                            mapViewModel.onResetSelectedMeasurementId()
+                            mapViewModel.onResetCurrentMarker()
+                        }
                     }
 
                     setOnPolylineClickListener { line ->
+                        mapViewModel.onSetCurrentPolyline(line)
                         mapViewModel.onSetCurrentLine(line.tag.toString())
                         mapViewModel.onDrawLine()
+                    }
+
+                    if (deletePolyline) {
+                        currentPolyline?.remove()
+                        mapViewModel.onResetCurrentPolyline()
+                        mapViewModel.onDeleteCurrentPolylineComplete()
+                    }
+
+                    if (currentPolyline != null) {
+                        if (currentLine is Resource.Success) {
+                            val line = currentLine.data
+
+                            currentPolyline.points.clear()
+
+                            currentPolyline.color = line.color
+
+
+                            when (line.type) {
+                                LineType.Continuous -> {
+                                    currentPolyline.pattern = null
+                                }
+                                LineType.Dashed -> currentPolyline.pattern = listOf(
+                                    Dash(20F),
+                                    Gap(10F)
+                                )
+                                LineType.Dotted -> currentPolyline.pattern = listOf(
+                                    Dot(),
+                                    Gap(10F)
+                                )
+                                LineType.DashDotted -> currentPolyline.pattern = listOf(
+                                    Dash(20F), Gap(10F),
+                                    Dot(), Gap(10F)
+                                )
+                            }
+
+
+                            if (measurements is Resource.Success) {
+                                currentPolyline.points = line.vertices
+                                    .sortedBy { it.index }
+                                    .filter { vertex ->
+                                        measurements.data.any {
+                                            it.id == vertex.measurementId
+                                        }
+                                    }
+                                    .map { vertex ->
+                                        val measurement = measurements.data
+                                            .first { it.id == vertex.measurementId }
+                                        LatLng(measurement.latitude, measurement.longitude)
+                                    }
+                            }
+                        }
+                    } else {
+                        if (currentLine is Resource.Success && measurements is Resource.Success) {
+                            val line = currentLine.data
+                            val polyline = addPolyline {
+                                clickable(true)
+                                color(line.color)
+                                width(5f)
+
+                                when (line.type) {
+                                    LineType.Continuous -> {
+                                    }
+                                    LineType.Dashed -> pattern(
+                                        listOf(
+                                            Dash(20F),
+                                            Gap(10F)
+                                        )
+                                    )
+                                    LineType.Dotted -> pattern(
+                                        listOf(
+                                            Dot(),
+                                            Gap(10F)
+                                        )
+                                    )
+                                    LineType.DashDotted -> pattern(
+                                        listOf(
+                                            Dash(20F), Gap(10F),
+                                            Dot(), Gap(10F)
+                                        )
+                                    )
+                                }
+
+                                line.vertices
+                                    .sortedBy { it.index }
+                                    .filter { vertex ->
+                                        measurements.data.any {
+                                            it.id == vertex.measurementId
+                                        }
+                                    }
+                                    .map { vertex ->
+                                        val measurement = measurements.data
+                                            .first { it.id == vertex.measurementId }
+                                        LatLng(measurement.latitude, measurement.longitude)
+                                    }.forEach { add(it) }
+                            }
+                            polyline.tag = line.id
+                            mapViewModel.onSetCurrentPolyline(polyline)
+                        }
+                    }
+
+                    if (currentMarker != null) {
+                        if (updateCurrentMarker) {
+                            currentMarker.setIcon(
+                                bitmapDescriptorFromVector(
+                                    context,
+                                    mapViewModel.currentPointObject.vectorResId,
+                                    Color.BLACK
+                                )
+                            )
+
+                            currentMarker.setAnchor(
+                                mapViewModel.currentPointObject.anchorX,
+                                mapViewModel.currentPointObject.anchorY
+                            )
+                            mapViewModel.onUpdateCurrentMarkerComplete()
+                            mapViewModel.onResetCurrentMarker()
+                        }
+
+                        if (deleteCurrentMarker) {
+                            currentMarker.remove()
+                            mapViewModel.onDeleteCurrentMarkerComplete()
+                            mapViewModel.onResetCurrentMarker()
+                        }
+                    } else {
+                        if (newMeasurement != null) {
+                            addMarker {
+                                position(LatLng(newMeasurement.latitude, newMeasurement.longitude))
+                                title(newMeasurement.number.toString())
+                                icon(bitmapDescriptorFromVector(
+                                    context,
+                                    newMeasurement.type.vectorResId,
+                                    Color.BLACK
+                                ))
+                                anchor(newMeasurement.type.anchorX, newMeasurement.type.anchorY)
+                            }.tag = newMeasurement.id
+
+                            mapViewModel.onResetNewMeasurement()
+                        }
                     }
 
 //                    setOnMapLongClickListener {
@@ -329,74 +518,83 @@ private fun MapViewContainer(
 //                        )
 //                    }
 
-                    when (measurements) {
-                        is Resource.Success -> {
-                            if (setBounds) {
-                                val bounds = LatLngBounds.builder()
-                                measurements
-                                    .data
-                                    .forEach {
+
+                    if (setBounds) {
+                        if (measurements is Resource.Success) {
+                            val bounds = LatLngBounds.builder()
+                            measurements
+                                .data
+                                .forEach {
                                     bounds.include(LatLng(it.latitude, it.longitude))
                                     animateCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 20))
                                 }
-                                mapViewModel.onSetBoundsComplete()
-                            }
+                        }
+                        mapViewModel.onSetBoundsComplete()
+                    }
 
-                            if (showMeasurements) {
-                                measurements.data.forEach { measurement ->
-                                    addMarker {
-                                        position(LatLng(measurement.latitude, measurement.longitude))
-                                        title(measurement.number.toString())
-                                        icon(bitmapDescriptorFromVector(
-                                            context,
-                                            measurement.type.vectorResId,
-                                            Color.BLACK
-                                        ))
-                                        anchor(measurement.type.anchorX, measurement.type.anchorY)
-                                    }.tag = measurement.id
-                                }
-                            }
 
-                            when (lines) {
-                                is Resource.Success -> {
-                                    lines.data.forEach { line ->
-                                        addPolyline {
-                                            clickable(true)
-                                            color(line.color)
-                                            width(5f)
+                    if (refreshAll) {
+                        clear()
+                        mapViewModel.onRefreshAllComplete()
 
-                                            when (line.type) {
-                                                LineType.Continuous -> { }
-                                                LineType.Dashed -> pattern(listOf(Dash(20F),
-                                                    Gap(10F)))
-                                                LineType.Dotted -> pattern(listOf(Dot(),
-                                                    Gap(10F)))
-                                                LineType.DashDotted ->  pattern(listOf(
-                                                    Dash(20F), Gap(10F),
-                                                    Dot(), Gap(10F)
-                                                ))
-                                            }
-
-                                            line.vertices
-                                                .sortedBy { it.index }
-                                                .filter { vertex -> measurements.data.any {
-                                                    it.id == vertex.measurementId}
-                                                }
-                                                .map { vertex ->
-                                                    val measurement = measurements.data
-                                                        .first { it.id == vertex.measurementId }
-                                                    LatLng(measurement.latitude, measurement.longitude)
-                                                }.forEach { add(it) }
-                                        }.tag = line.id
+                        when (measurements) {
+                            is Resource.Success -> {
+                                if (showMeasurements) {
+                                    measurements.data.forEach { measurement ->
+                                        addMarker {
+                                            position(LatLng(measurement.latitude, measurement.longitude))
+                                            title(measurement.number.toString())
+                                            icon(bitmapDescriptorFromVector(
+                                                context,
+                                                measurement.type.vectorResId,
+                                                Color.BLACK
+                                            ))
+                                            anchor(measurement.type.anchorX, measurement.type.anchorY)
+                                        }.tag = measurement.id
                                     }
                                 }
-                                is Resource.Failure -> {  }
-                                is Resource.Loading -> {  }
-                            }
 
+                                when (lines) {
+                                    is Resource.Success -> {
+                                        lines.data.forEach { line ->
+                                            addPolyline {
+                                                clickable(true)
+                                                color(line.color)
+                                                width(5f)
+
+                                                when (line.type) {
+                                                    LineType.Continuous -> { }
+                                                    LineType.Dashed -> pattern(listOf(Dash(20F),
+                                                        Gap(10F)))
+                                                    LineType.Dotted -> pattern(listOf(Dot(),
+                                                        Gap(10F)))
+                                                    LineType.DashDotted ->  pattern(listOf(
+                                                        Dash(20F), Gap(10F),
+                                                        Dot(), Gap(10F)
+                                                    ))
+                                                }
+
+                                                line.vertices
+                                                    .sortedBy { it.index }
+                                                    .filter { vertex -> measurements.data.any {
+                                                        it.id == vertex.measurementId}
+                                                    }
+                                                    .map { vertex ->
+                                                        val measurement = measurements.data
+                                                            .first { it.id == vertex.measurementId }
+                                                        LatLng(measurement.latitude, measurement.longitude)
+                                                    }.forEach { add(it) }
+                                            }.tag = line.id
+                                        }
+                                    }
+                                    is Resource.Failure -> {  }
+                                    is Resource.Loading -> {  }
+                                }
+
+                            }
+                            is Resource.Failure -> {  }
+                            is Resource.Loading -> {  }
                         }
-                        is Resource.Failure -> {  }
-                        is Resource.Loading -> {  }
                     }
                 }
             }
