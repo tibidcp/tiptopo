@@ -162,7 +162,7 @@ fun StationRow(
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(stringResource(R.string.station), style = MaterialTheme.typography.body2)
             val calendar = Calendar.getInstance()
-            calendar.timeInMillis = station.date
+            calendar.timeInMillis = station.date!!.time
             val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
             val date = formatter.format(calendar.time)
             Text(date, style = MaterialTheme.typography.body2)

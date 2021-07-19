@@ -25,7 +25,6 @@ class FirestoreProjectDataSource @Inject constructor(
         val doc = firestore.collection(path)
             .document()
         project.id = doc.id
-        project.date = System.currentTimeMillis()
         doc.set(project).await()
         return Resource.Success(project)
     }
@@ -43,7 +42,6 @@ class FirestoreProjectDataSource @Inject constructor(
     override suspend fun updateProject(project: Project): Resource<Project> {
         val doc = firestore.collection(path)
             .document(project.id)
-        project.date = System.currentTimeMillis()
         doc.set(project).await()
         return Resource.Success(project)
     }

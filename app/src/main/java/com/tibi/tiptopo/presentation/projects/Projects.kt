@@ -1,5 +1,6 @@
 package com.tibi.tiptopo.presentation.projects
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -204,13 +205,15 @@ fun ProjectRow(
     onItemClicked: (Project) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.clickable { onItemClicked(project) }
-        .padding(start = 8.dp)) {
+    Column(
+        modifier
+            .clickable { onItemClicked(project) }
+            .padding(start = 8.dp)) {
         Text(text = project.name, fontWeight = FontWeight.Bold)
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(project.totalStation.name, style = MaterialTheme.typography.body2)
             val calendar = Calendar.getInstance()
-            calendar.timeInMillis = project.date
+            calendar.timeInMillis = project.date!!.time
             val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
             val date = formatter.format(calendar.time)
             Text(date, style = MaterialTheme.typography.body2)

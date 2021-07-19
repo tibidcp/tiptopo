@@ -27,7 +27,6 @@ class FirestoreStationDataSource @Inject constructor(
         val doc = firestore.collection(path)
             .document()
         station.id = doc.id
-        station.date = System.currentTimeMillis()
         doc.set(station).await()
         return Resource.Success(station)
     }
@@ -69,7 +68,7 @@ class FirestoreStationDataSource @Inject constructor(
         val subscription = result.addSnapshotListener { snapshot, _ ->
             if (!snapshot!!.isEmpty) {
                 val station = snapshot
-                    .map { it.toObject<Station>() }.maxByOrNull { it.date }
+                    .map { it.toObject<Station>() }.maxByOrNull { it.date!! }
                 if (station != null) {
                     trySend(Resource.Success(station))
                 }

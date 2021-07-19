@@ -2,7 +2,9 @@ package com.tibi.tiptopo.domain
 
 import android.graphics.Color
 import androidx.annotation.StringRes
+import com.google.firebase.firestore.ServerTimestamp
 import com.tibi.tiptopo.R
+import java.util.*
 
 data class Line(
     var id: String = "",
@@ -10,7 +12,8 @@ data class Line(
     var color: Int = Color.BLACK,
     var type: LineType = LineType.Continuous,
     var vertices: List<Vertex> = listOf(),
-    var date: Long = 0
+    @ServerTimestamp
+    var date: Date? = null
 )
 
 enum class LineType(

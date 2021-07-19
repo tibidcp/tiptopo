@@ -1,8 +1,10 @@
 package com.tibi.tiptopo.domain
 
 import androidx.annotation.StringRes
+import com.google.firebase.firestore.ServerTimestamp
 import com.squareup.moshi.JsonClass
 import com.tibi.tiptopo.R
+import java.util.*
 
 data class Measurement(
     var id: String = "",
@@ -17,7 +19,8 @@ data class Measurement(
     var ht: Double = 0.0,
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
-    var date: Long = 0
+    @ServerTimestamp
+    var date: Date? = null
 )
 
 enum class PointType(

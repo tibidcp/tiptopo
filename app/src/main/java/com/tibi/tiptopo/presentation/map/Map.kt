@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -36,17 +37,26 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.*
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.domain.*
+import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
 import java.io.*
+import java.text.SimpleDateFormat
+import java.util.*
+import javax.inject.Inject
 
 
 val colorList = listOf(
@@ -550,17 +560,17 @@ private fun MapViewContainer(
                         }
                     }
 
-//                    setOnMapLongClickListener {
-//                        mapViewModel.addMeasurement(
-//                            Measurement(
-//                                latitude = it.latitude,
-//                                longitude = it.longitude,
-//                                type = mapViewModel.currentPointObject,
-//                                name = it.toString()
-//                            ),
-//                            station.id
-//                        )
-//                    }
+                    setOnMapLongClickListener {
+                        mapViewModel.addMeasurement(
+                            Measurement(
+                                latitude = it.latitude,
+                                longitude = it.longitude,
+                                type = mapViewModel.currentPointObject,
+                                name = it.toString()
+                            ),
+                            station.id
+                        )
+                    }
 
 
                     if (setBounds) {

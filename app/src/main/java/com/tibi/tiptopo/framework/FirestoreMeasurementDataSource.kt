@@ -28,7 +28,6 @@ class FirestoreMeasurementDataSource @Inject constructor(
         val doc = firestore.collection(path)
             .document()
         measurement.id = doc.id
-        measurement.date = System.currentTimeMillis()
         doc.set(measurement).await()
         return Resource.Success(measurement)
     }

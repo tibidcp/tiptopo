@@ -1,9 +1,13 @@
 package com.tibi.tiptopo.domain
 
+import com.google.firebase.firestore.ServerTimestamp
+import java.util.*
+
 data class Project(
     var id: String = "",
     var name: String = "",
-    var date: Long = 0,
+    @ServerTimestamp
+    var date: Date? = null,
     var totalStation: TotalStation = TotalStation.NikonNPL352
 )
 

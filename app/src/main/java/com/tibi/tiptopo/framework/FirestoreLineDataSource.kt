@@ -2,7 +2,6 @@ package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
@@ -28,7 +27,6 @@ class FirestoreLineDataSource @Inject constructor(
         val doc = firestore.collection(path)
             .document()
         line.id = doc.id
-        line.date = System.currentTimeMillis()
         doc.set(line).await()
         return Resource.Success(line)
     }
