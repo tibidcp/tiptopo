@@ -14,9 +14,7 @@ import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListe
 import app.akexorcist.bluetotohspp.library.BluetoothState
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.Polyline
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
+import com.squareup.moshi.*
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
@@ -35,6 +33,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -204,6 +203,13 @@ class MapViewModel @Inject constructor(
         currentMarker = null
     }
 
+    object DateAdapter {
+        @FromJson
+        fun fromJson(string: String) = Date(string.toLong())
+        @ToJson
+        fun toJson(value: Date) = value.time.toString()
+    }
+
     fun exportRawFile(stations: List<Station>, measurements: List<Measurement>, lines: List<Line>) {
 
         val builderRaw = StringBuilder()
@@ -233,6 +239,7 @@ class MapViewModel @Inject constructor(
         }
 
         val moshi = Moshi.Builder()
+            .add(DateAdapter)
             .addLast(KotlinJsonAdapterFactory())
             .build()
         val type1 = Types.newParameterizedType(List::class.java, Measurement::class.java)
