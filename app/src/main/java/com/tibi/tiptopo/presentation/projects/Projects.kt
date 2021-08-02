@@ -213,7 +213,7 @@ fun ProjectRow(
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(project.totalStation.name, style = MaterialTheme.typography.body2)
             val calendar = Calendar.getInstance()
-            calendar.timeInMillis = project.date!!.time
+            calendar.timeInMillis = project.date?.time ?: 0
             val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
             val date = formatter.format(calendar.time)
             Text(date, style = MaterialTheme.typography.body2)

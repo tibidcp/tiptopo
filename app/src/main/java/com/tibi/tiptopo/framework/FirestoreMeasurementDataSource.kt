@@ -2,7 +2,8 @@ package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.Query.Direction.DESCENDING
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
@@ -53,13 +54,70 @@ class FirestoreMeasurementDataSource @Inject constructor(
     override suspend fun getAllMeasurements(): Flow<Resource<List<Measurement>>> = callbackFlow {
         val result = firestore
             .collection(path)
-        val subscription = result.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty) {
-                val measurementList = snapshot.map { it.toObject<Measurement>() }.toList()
-                trySend(Resource.Success(measurementList))
+
+        val measurements = mutableListOf<Measurement>()
+
+        val query = result.orderBy("date", DESCENDING)
+
+        query.get(Source.CACHE)
+            .addOnFailureListener {
+                trySend(Resource.Failure(it))
+                return@addOnFailureListener
             }
-        }
-        awaitClose { subscription.remove() }
+            .addOnSuccessListener { cashSnapshot ->
+                if (cashSnapshot.isEmpty) {
+                    query.get(Source.SERVER)
+                        .addOnFailureListener {
+                            trySend(Resource.Failure(it))
+                            return@addOnFailureListener
+                        }
+                        .addOnSuccessListener { serverSnapshot ->
+                            if (serverSnapshot.isEmpty) {
+                                //emit empty list
+                                trySend(Resource.Success(measurements))
+                            } else {
+                                //emit all data from server
+                                trySend(Resource.Success(serverSnapshot
+                                    .map { it.toObject<Measurement>() }))
+                            }
+                        }
+                } else {
+                    val latestCache = cashSnapshot.first().data["date"]
+                    if (latestCache != null) {
+                        measurements += cashSnapshot.map { it.toObject<Measurement>() }.toList()
+
+                        result.orderBy("date")
+                            .whereGreaterThan("date", latestCache)
+                            .get(Source.SERVER)
+                            .addOnFailureListener {
+                                //emit all data from cache
+                                trySend(Resource.Success(measurements))
+                                return@addOnFailureListener
+                            }
+                            .addOnSuccessListener { serverList ->
+                                if (serverList.isEmpty) {
+                                    //emit all data from cache
+                                    trySend(Resource.Success(measurements))
+                                } else {
+                                    //emit data from cache and server
+                                    serverList.forEach { snapshot ->
+                                        val serverMeasurement = snapshot.toObject<Measurement>()
+                                        val cacheMeasurement = measurements
+                                            .find { it.id == serverMeasurement.id }
+                                        if (cacheMeasurement == null) {
+                                            measurements += serverMeasurement
+                                        } else {
+                                            measurements[measurements.indexOf(cacheMeasurement)] =
+                                                serverMeasurement
+                                        }
+                                    }
+                                    trySend(Resource.Success(measurements))
+                                }
+                            }
+                    }
+                }
+            }
+        awaitClose()
     }
 
     override suspend fun deleteMeasurement(measurementId: String) {

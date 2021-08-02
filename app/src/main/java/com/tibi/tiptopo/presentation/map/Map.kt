@@ -590,6 +590,7 @@ private fun MapViewContainer(
                     if (refreshAll) {
                         clear()
                         mapViewModel.onRefreshAllComplete()
+                        mapViewModel.refresh()
 
                         when (measurements) {
                             is Resource.Success -> {

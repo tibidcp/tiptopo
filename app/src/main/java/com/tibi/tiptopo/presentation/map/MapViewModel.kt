@@ -32,6 +32,7 @@ import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import com.tibi.tiptopo.presentation.toLatLng
 import com.tibi.tiptopo.presentation.toRawDegrees
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -109,6 +110,8 @@ class MapViewModel @Inject constructor(
     var showToast by mutableStateOf("")
         private set
 
+    private val refreshTrigger = MutableLiveData(Unit)
+
     val currentProject = liveData {
         emit(Resource.Loading())
         try {
@@ -129,12 +132,9 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    val measurements = liveData<Resource<List<Measurement>>> {
-        emit(Resource.Loading())
-        try {
+    val measurements = refreshTrigger.switchMap {
+        liveData {
             measurementRepository.getAllMeasurements().collect { emit(it) }
-        } catch (e: Exception) {
-            emit(Resource.Failure(e))
         }
     }
 
@@ -156,6 +156,10 @@ class MapViewModel @Inject constructor(
         } catch (e: Exception) {
             emit(Resource.Failure(e))
         }
+    }
+
+    fun refresh() {
+        refreshTrigger.value = Unit
     }
 
     private fun onSetRawText(text: String) {
