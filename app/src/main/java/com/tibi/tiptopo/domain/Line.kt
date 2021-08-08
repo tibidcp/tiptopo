@@ -4,7 +4,7 @@ import android.graphics.Color
 import androidx.annotation.StringRes
 import com.google.firebase.firestore.ServerTimestamp
 import com.tibi.tiptopo.R
-import java.util.*
+import java.util.Date
 
 data class Line(
     override var id: String = "",
@@ -24,5 +24,4 @@ enum class LineType(
     Dashed(R.drawable.ic_dashed, R.string.dashed),
     Dotted(R.drawable.ic_dotted, R.string.dotted),
     DashDotted(R.drawable.ic_dash_dotted, R.string.dash_dotted),
-
 }

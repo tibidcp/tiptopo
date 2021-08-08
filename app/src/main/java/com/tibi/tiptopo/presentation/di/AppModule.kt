@@ -31,9 +31,6 @@ import javax.inject.Qualifier
 import javax.inject.Singleton
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 
-
-
-
 @InstallIn(ViewModelComponent::class)
 @Module
 abstract class ProjectDataSourceModule {

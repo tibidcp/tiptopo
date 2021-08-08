@@ -1,7 +1,6 @@
 package com.tibi.tiptopo.presentation
 
 import com.google.maps.android.geometry.Point
-import com.tibi.tiptopo.domain.Measurement
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

@@ -1,27 +1,51 @@
 package com.tibi.tiptopo.presentation.map
 
-import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.GridCells
 import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
+import androidx.compose.material.Button
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AutoFixOff
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SendToMobile
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,28 +60,31 @@ import app.akexorcist.bluetotohspp.library.DeviceList
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
-import com.google.android.gms.maps.model.*
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.domain.*
-import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.domain.Line
+import com.tibi.tiptopo.domain.LineType
+import com.tibi.tiptopo.domain.Measurement
+import com.tibi.tiptopo.domain.PointType
+import com.tibi.tiptopo.domain.Project
+import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.Vertex
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
-import java.io.*
-import java.text.SimpleDateFormat
-import java.util.*
-import javax.inject.Inject
-
+import java.io.File
+import java.io.FileOutputStream
 
 val colorList = listOf(
     Color.BLACK,
@@ -122,7 +149,6 @@ fun MapScreen(
         val docPath = File(context.filesDir, "docs")
         val docFile = File(docPath, "raw.rdf")
         val docUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", docFile)
-
 
         val measurementFile = File(docPath, "measurements.json")
         val measurementUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", measurementFile)

@@ -6,11 +6,14 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.geometry.Point
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.Station
-import com.tibi.tiptopo.presentation.parser.IDataParser
 import org.osgeo.proj4j.BasicCoordinateTransform
 import org.osgeo.proj4j.CRSFactory
 import org.osgeo.proj4j.ProjCoordinate
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.atan
+import kotlin.math.cos
+import kotlin.math.round
+import kotlin.math.sin
 
 const val SCALE = 10.0
 
@@ -18,7 +21,6 @@ fun Context.toast(message: CharSequence) =
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
 fun LatLng.toPoint(): Point {
-
     val factory = CRSFactory()
     // wgs84
     val src = factory.createFromName("EPSG:4326")
