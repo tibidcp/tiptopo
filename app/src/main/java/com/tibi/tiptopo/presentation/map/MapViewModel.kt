@@ -30,7 +30,6 @@ import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import com.tibi.tiptopo.presentation.toLatLng
 import com.tibi.tiptopo.presentation.toRawDegrees
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
@@ -48,6 +47,9 @@ class MapViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
+
+    var topBarState by mutableStateOf<MapTopBarState>(MapTopBarState.Main)
+        private set
 
     var currentLine by mutableStateOf<Resource<Line>>(Resource.Loading())
         private set
@@ -74,12 +76,6 @@ class MapViewModel @Inject constructor(
         private set
 
     var deleteCurrentMarker by mutableStateOf(false)
-        private set
-
-    var selectedMeasurementId by mutableStateOf("")
-        private set
-
-    var drawLine by mutableStateOf(false)
         private set
 
     var deleteCurrentPolyline by mutableStateOf(false)
@@ -120,41 +116,30 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    val currentStation = liveData<Resource<Station>> {
-        emit(Resource.Loading())
-        try {
-            stationRepository.getLastStation().collect {
-                emit(it)
-            }
-        } catch (e: Exception) {
-            emit(Resource.Failure(e))
-        }
-    }
-
     val measurements = refreshTrigger.switchMap {
         liveData {
             measurementRepository.getAllMeasurements().collect { emit(it) }
         }
     }
 
-    val lines = liveData<Resource<List<Line>>> {
-        emit(Resource.Loading())
-        try {
+    val lines = refreshTrigger.switchMap {
+        liveData {
             lineRepository.getAllLines().collect { emit(it) }
-        } catch (e: Exception) {
-            emit(Resource.Failure(e))
         }
     }
 
-    val stations = liveData<Resource<List<Station>>> {
-        emit(Resource.Loading())
-        try {
-            stationRepository.getAllStations().collect {
-                emit(it)
-            }
-        } catch (e: Exception) {
-            emit(Resource.Failure(e))
+    val stations = refreshTrigger.switchMap {
+        liveData {
+            stationRepository.getAllStations().collect { emit(it) }
         }
+    }
+
+    fun onSetTopBarState(state: MapTopBarState) {
+        topBarState = state
+    }
+
+    fun onResetTopBarState() {
+        topBarState = MapTopBarState.Main
     }
 
     fun refresh() {
@@ -210,52 +195,61 @@ class MapViewModel @Inject constructor(
         fun toJson(value: Date) = value.time.toString()
     }
 
-    fun exportRawFile(stations: List<Station>, measurements: List<Measurement>, lines: List<Line>) {
+    fun exportRawFile() {
+        val stationsValue = stations.value
+        val measurementsValue = measurements.value
+        val linesValue = lines.value
+        if (stationsValue is Resource.Success && measurementsValue is Resource.Success
+            && linesValue is Resource.Success) {
+            val builderRaw = StringBuilder()
 
-        val builderRaw = StringBuilder()
-
-        stations.sortedBy { it.date }.forEach { station ->
-            val backsight = measurements.firstOrNull { it.id == station.backsightId }
-            builderRaw.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")
-            if (backsight != null) {
-                builderRaw.append(
-                    "SS,S${backsight.number}," +
-                            "${station.hi.format()},${station.backsightSD.format()}," +
-                            "${station.backsightHA.toRawDegrees()},${station.backsightVA.toRawDegrees()},00:00:00,\n"
-                )
-            }
-            measurements.filter { it.stationId == station.id }.sortedBy { it.date }
-                .forEach {
-                    var name = it.number.toString()
-                    if (it.type == PointType.Station) {
-                        name = "S$name"
-                    }
+            stationsValue.data.sortedBy { it.date }.forEach { station ->
+                val backsight = measurementsValue.data.firstOrNull { it.id == station.backsightId }
+                builderRaw.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")
+                if (backsight != null) {
                     builderRaw.append(
-                        "SS,$name," +
-                                "${station.hi.format()},${it.sd.format()}," +
-                                "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,\n"
+                        "SS,S${backsight.number}," +
+                                "${station.hi.format()},${station.backsightSD.format()}," +
+                                "${station.backsightHA.toRawDegrees()}," +
+                                "${station.backsightVA.toRawDegrees()},00:00:00,\n"
                     )
                 }
+                measurementsValue.data.filter { it.stationId == station.id }.sortedBy { it.date }
+                    .forEach {
+                        var name = it.number.toString()
+                        if (it.type == PointType.Station) {
+                            name = "S$name"
+                        }
+                        builderRaw.append(
+                            "SS,$name," +
+                                    "${station.hi.format()},${it.sd.format()}," +
+                                    "${it.ha.toRawDegrees()},${it.va.toRawDegrees()},00:00:00,\n"
+                        )
+                    }
+            }
+
+            val moshi = Moshi.Builder()
+                .add(DateAdapter)
+                .addLast(KotlinJsonAdapterFactory())
+                .build()
+            val type1 = Types.newParameterizedType(List::class.java, Measurement::class.java)
+            val jsonAdapter1: JsonAdapter<List<Measurement>> = moshi.adapter(type1)
+            val measurementJson = jsonAdapter1.indent("  ").toJson(measurementsValue.data)
+            onSetMeasurementJsonText(measurementJson)
+            val type2 = Types.newParameterizedType(
+                List::class.java,
+                Line::class.java,
+                Vertex::class.java
+            )
+            val jsonAdapter2: JsonAdapter<List<Line>> = moshi.adapter(type2)
+            val linearJson = jsonAdapter2.indent("  ").toJson(linesValue.data)
+            onSetLinearJsonText(linearJson)
+
+
+            measurementsValue.data.sortedBy { it.date }
+
+            onSetRawText(builderRaw.toString())
         }
-
-        val moshi = Moshi.Builder()
-            .add(DateAdapter)
-            .addLast(KotlinJsonAdapterFactory())
-            .build()
-        val type1 = Types.newParameterizedType(List::class.java, Measurement::class.java)
-        val jsonAdapter1: JsonAdapter<List<Measurement>> = moshi.adapter(type1)
-        val measurementJson = jsonAdapter1.indent("  ").toJson(measurements)
-        onSetMeasurementJsonText(measurementJson)
-
-        val type2 = Types.newParameterizedType(List::class.java, Line::class.java, Vertex::class.java)
-        val jsonAdapter2: JsonAdapter<List<Line>> = moshi.adapter(type2)
-        val linearJson = jsonAdapter2.indent("  ").toJson(lines)
-        onSetLinearJsonText(linearJson)
-
-
-        measurements.sortedBy { it.date }
-
-        onSetRawText(builderRaw.toString())
     }
 
     fun onSetCurrentLineType(lineType: LineType) {
@@ -300,14 +294,6 @@ class MapViewModel @Inject constructor(
                 Resource.Failure(e)
             }
         }
-    }
-
-    fun onSetSelectedMeasurementId(id: String) {
-        selectedMeasurementId = id
-    }
-
-    fun onResetSelectedMeasurementId() {
-        selectedMeasurementId = ""
     }
 
     fun onSetBounds() {
@@ -364,16 +350,6 @@ class MapViewModel @Inject constructor(
         currentLine = Resource.Loading()
     }
 
-    fun onDrawLine() {
-        drawLine = true
-    }
-
-    fun onDrawLineComplete() {
-        drawLine = false
-        onResetCurrentLine()
-        onResetCurrentLineType()
-    }
-
     fun onDeleteLine(lineId: String) {
         deleteCurrentPolyline = true
         viewModelScope.launch {
@@ -387,10 +363,13 @@ class MapViewModel @Inject constructor(
 
     fun onDeleteSelectedMeasurement() {
         onDeleteCurrentMarker()
+        val state = topBarState
         viewModelScope.launch {
-            measurementRepository.deleteMeasurement(selectedMeasurementId)
+            if (state is MapTopBarState.MeasurementEdit) {
+                measurementRepository.deleteMeasurement(state.id)
+            }
         }
-        onResetSelectedMeasurementId()
+        topBarState = MapTopBarState.Main
     }
 
     fun onConnectBluetooth() {
@@ -443,11 +422,11 @@ class MapViewModel @Inject constructor(
 
     private fun autoAddMeasurement(message: String) {
         val parser = NikonRawParser(message)
-        val currentStationValue = currentStation.value
+        val stationsValue = stations.value
         val allMeasurementsValue = measurements.value
-        if (currentStationValue is Resource.Success && allMeasurementsValue is Resource.Success) {
+        if (stationsValue is Resource.Success && allMeasurementsValue is Resource.Success) {
             val maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
-            val station = currentStationValue.data
+            val station = stationsValue.data.sortedByDescending { it.date }.first()
             val va = parser.parseVA()
             val ha = parser.parseHA()
             val sd = parser.parseSD()
@@ -484,13 +463,17 @@ class MapViewModel @Inject constructor(
     fun onUpdateSelectedMeasurementType() {
         onUpdateCurrentMarker()
         viewModelScope.launch {
-            val measurement = measurementRepository.getMeasurement(selectedMeasurementId)
-            if (measurement is Resource.Success) {
-                measurement.data.type = currentPointObject
-                measurementRepository.updateMeasurement(measurement.data)
+            val state = topBarState
+            if (state is MapTopBarState.MeasurementEdit) {
+                val id = state.id
+                val measurement = measurementRepository.getMeasurement(id)
+                if (measurement is Resource.Success) {
+                    measurement.data.type = currentPointObject
+                    measurementRepository.updateMeasurement(measurement.data)
+                }
             }
         }
-        onResetSelectedMeasurementId()
+        topBarState = MapTopBarState.Main
     }
 
     fun onDeleteLastVertex(line: Line) {
@@ -525,4 +508,10 @@ class MapViewModel @Inject constructor(
             updateLine(line)
         }
     }
+}
+
+sealed class MapTopBarState {
+    object Main : MapTopBarState()
+    object LineEdit : MapTopBarState()
+    data class MeasurementEdit(val id: String) : MapTopBarState()
 }

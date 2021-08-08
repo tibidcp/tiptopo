@@ -54,7 +54,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.DrawableCompat
 import app.akexorcist.bluetotohspp.library.DeviceList
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -83,8 +82,6 @@ import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
 val colorList = listOf(
     Color.BLACK,
@@ -114,11 +111,24 @@ fun Map(
         FirebaseUserLiveData.AuthenticationState.AUTHENTICATED -> {
             when (currentProject) {
                 is Resource.Loading -> { ProgressCircular() }
-                is Resource.Success -> MapScreen(currentProject.data, onSetStation, mapViewModel)
+                is Resource.Success -> {
+                    ExportMapFiles(mapViewModel)
+                    ShowToast(mapViewModel)
+                    MapScreen(currentProject.data, onSetStation, mapViewModel)
+                }
                 is Resource.Failure -> { Text(text = stringResource(R.string.error)) }
             }
         }
         FirebaseUserLiveData.AuthenticationState.UNAUTHENTICATED -> onLogOut()
+    }
+}
+
+@Composable
+fun ShowToast(mapViewModel: MapViewModel) {
+    val showToast = mapViewModel.showToast
+    if (showToast.isNotBlank()) {
+        LocalContext.current.toast(showToast)
+        mapViewModel.onStopShowToast()
     }
 }
 
@@ -130,211 +140,165 @@ fun MapScreen(
     onSetStation: () -> Unit,
     mapViewModel: MapViewModel
 ) {
-    val currentStation = mapViewModel.currentStation.observeAsState(Resource.Loading()).value
-    val stations = mapViewModel.stations.observeAsState(Resource.Loading()).value
-    val measurements = mapViewModel.measurements.observeAsState(Resource.Loading()).value
-    val lines = mapViewModel.lines.observeAsState(Resource.Loading()).value
-    val currentLine = mapViewModel.currentLine
-    val drawLine = mapViewModel.drawLine
-    val showToast = mapViewModel.showToast
-    val selectedMeasurementId = mapViewModel.selectedMeasurementId
-    val rawText = mapViewModel.rawText
-    val measurementJson = mapViewModel.measurementJsonText
-    val linearJson = mapViewModel.linearJsonText
-
-    if (rawText.isNotBlank() && measurementJson.isNotBlank() && linearJson.isNotBlank()) {
-
-        val context = LocalContext.current
-
-        val docPath = File(context.filesDir, "docs")
-        val docFile = File(docPath, "raw.rdf")
-        val docUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", docFile)
-
-        val measurementFile = File(docPath, "measurements.json")
-        val measurementUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", measurementFile)
-
-        val linearFile = File(docPath, "lines.json")
-        val linearUri = FileProvider.getUriForFile(context, "com.tibi.tiptopo.fileprovider", linearFile)
-
-        val uris = arrayListOf(docUri, measurementUri, linearUri)
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND_MULTIPLE
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            type = "text/*"
-        }
-
-        val shareIntent = Intent.createChooser(sendIntent, null)
-
-        val dir = context.filesDir.absolutePath + File.separator + "docs"
-        val projDir = File(dir)
-        if (!projDir.exists()) {
-            projDir.mkdirs()
-        }
-        val file = File(projDir, "raw.rdf")
-        val stream = FileOutputStream(file)
-        stream.use {
-            stream.write(rawText.toByteArray())
-        }
-
-        val fileMeasurement = File(projDir, "measurements.json")
-        val streamMeasurement = FileOutputStream(fileMeasurement)
-        streamMeasurement.use {
-            streamMeasurement.write(measurementJson.toByteArray())
-        }
-
-        val fileLinear = File(projDir, "lines.json")
-        val streamLinear = FileOutputStream(fileLinear)
-        streamLinear.use {
-            streamLinear.write(linearJson.toByteArray())
-        }
-
-        context.startActivity(shareIntent)
-        mapViewModel.onResetExportTexts()
-    }
-
-    if (showToast.isNotBlank()) {
-        LocalContext.current.toast(showToast)
-        mapViewModel.onStopShowToast()
-    }
-
     Scaffold(
-        topBar = {
-            when (drawLine) {
-                true -> TopAppBar(
-                        title = { Text(text =
-                        when (currentLine) {
-                            is Resource.Success -> stringResource(R.string.add_next_point)
-                            is Resource.Loading -> stringResource(R.string.add_first_point)
-                            is Resource.Failure -> stringResource(R.string.error)
-                        }
-                        ) },
-                        actions = {
-                            IconButton(onClick = {
-                                if (currentLine is Resource.Success) {
-                                    mapViewModel.onDeleteLastVertex(currentLine.data)
-                                }
-                            }) {
-                                Icon(
-                                    Icons.Default.AutoFixOff,
-                                    stringResource(R.string.delete_last_vertex)
-                                )
-                            }
-                            IconButton(onClick = {
-                                if (currentLine is Resource.Success) {
-                                    mapViewModel.onReverseCurrentLine(currentLine.data)
-                                }
-                            }) {
-                                Icon(
-                                    Icons.Default.CompareArrows,
-                                    stringResource(R.string.reverse_current_line)
-                                )
-                            }
-                            IconButton(onClick = {
-                                if (currentLine is Resource.Success) {
-                                    mapViewModel.onUpdateCurrentLineTypeAndColor(currentLine.data)
-                                }
-                            }) {
-                                Icon(
-                                    Icons.Default.Update,
-                                    stringResource(R.string.update_current_line_type_and_color)
-                                )
-                            }
-                            IconButton(onClick = {
-                                if (currentLine is Resource.Success) {
-                                    mapViewModel.onDeleteLine(currentLine.data.id)
-                                    mapViewModel.onDrawLineComplete()
-                                }
-                            }) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    stringResource(R.string.delete)
-                                )
-                            }
-                            IconButton(onClick = {
-                                mapViewModel.onDrawLineComplete()
-                                mapViewModel.onResetCurrentPolyline()
-                            }) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    stringResource(R.string.complete_line_description)
-                                )
-                            }
-                        }
-                    )
-                false -> {
-                    if (selectedMeasurementId.isNotBlank()) {
-                        TopAppBar(
-                            title = { Text(text = stringResource(R.string.edit_point)) },
-                            actions = {
-                                IconButton(onClick = {
-                                    mapViewModel.onUpdateSelectedMeasurementType()
-                                }) {
-                                    Icon(
-                                        Icons.Default.Update,
-                                        "Update measurement type"
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    mapViewModel.onDeleteSelectedMeasurement()
-                                }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        stringResource(R.string.delete)
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    mapViewModel.onResetSelectedMeasurementId()
-                                    mapViewModel.onResetCurrentMarker()
-                                }) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        stringResource(R.string.end_measurement_edit)
-                                    )
-                                }
-                            }
-                        )
-                    } else
-                    {
-                        TopAppBar(
-                            title = { Text(text = project.name) },
-                            actions = {
-                                IconButton(onClick = {
-                                    if (stations is Resource.Success && measurements is Resource.Success && lines is Resource.Success) {
-                                        mapViewModel.exportRawFile(stations.data, measurements.data, lines.data)
-                                    }
-                                }) {
-                                    Icon(
-                                        Icons.Default.SendToMobile,
-                                        stringResource(R.string.export_raw_file)
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    mapViewModel.onRefreshAll()
-                                }) {
-                                    Icon(
-                                        Icons.Default.Refresh,
-                                        stringResource(R.string.refresh_all)
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
+        topBar = { TopBarMap(mapViewModel, project) }
     ) {
-        val mapView = rememberMapViewWithLifecycle()
-        when (currentStation) {
-            is Resource.Failure -> Text(text = currentStation.throwable.message.toString())
-            is Resource.Loading -> StationButton(onSetStation, stringResource(R.string.no_station))
-            is Resource.Success -> {
-                MapViewContainer(mapView, mapViewModel, currentStation.data, onSetStation)
-                currentStation.data.name
-            }
+        MapView(mapViewModel, onSetStation)
+    }
+}
+
+
+
+@ExperimentalAnimationApi
+@ExperimentalFoundationApi
+@Composable
+fun MapView(mapViewModel: MapViewModel, onSetStation: () -> Unit) {
+    val stations = mapViewModel.stations.observeAsState(Resource.Loading()).value
+    val mapView = rememberMapViewWithLifecycle()
+    when (stations) {
+        is Resource.Failure -> Text(text = stations.throwable.message.toString())
+        is Resource.Loading -> StationButton(onSetStation, stringResource(R.string.no_station))
+        is Resource.Success -> {
+            val currentStation = stations.data.sortedByDescending { it.date }.first()
+            MapViewContainer(mapView, mapViewModel, currentStation, onSetStation)
         }
     }
+}
+
+@Composable
+fun TopBarMap(mapViewModel: MapViewModel, project: Project) {
+    when (mapViewModel.topBarState) {
+        is MapTopBarState.LineEdit -> TobBarLine(mapViewModel)
+        is MapTopBarState.Main -> TopBarMain(project, mapViewModel)
+        is MapTopBarState.MeasurementEdit -> TopBarMeasurement(mapViewModel)
+    }
+}
+
+@Composable
+fun TopBarMeasurement(mapViewModel: MapViewModel) {
+    TopAppBar(
+        title = { Text(text = stringResource(R.string.edit_point)) },
+        actions = {
+            IconButton(onClick = {
+                mapViewModel.onUpdateSelectedMeasurementType()
+            }) {
+                Icon(
+                    Icons.Default.Update,
+                    "Update measurement type"
+                )
+            }
+            IconButton(onClick = {
+                mapViewModel.onDeleteSelectedMeasurement()
+            }) {
+                Icon(
+                    Icons.Default.Delete,
+                    stringResource(R.string.delete)
+                )
+            }
+            IconButton(onClick = {
+                mapViewModel.onResetTopBarState()
+                mapViewModel.onResetCurrentMarker()
+            }) {
+                Icon(
+                    Icons.Default.Check,
+                    stringResource(R.string.end_measurement_edit)
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun TopBarMain(project: Project, mapViewModel: MapViewModel) {
+    TopAppBar(
+        title = { Text(text = project.name) },
+        actions = {
+            IconButton(onClick = {
+                mapViewModel.exportRawFile()
+            }) {
+                Icon(
+                    Icons.Default.SendToMobile,
+                    stringResource(R.string.export_raw_file)
+                )
+            }
+            IconButton(onClick = {
+                mapViewModel.onRefreshAll()
+            }) {
+                Icon(
+                    Icons.Default.Refresh,
+                    stringResource(R.string.refresh_all)
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun TobBarLine(mapViewModel: MapViewModel) {
+    val currentLine = mapViewModel.currentLine
+    TopAppBar(
+        title = {
+            Text(text =
+            when (currentLine) {
+                is Resource.Success -> stringResource(R.string.add_next_point)
+                is Resource.Loading -> stringResource(R.string.add_first_point)
+                is Resource.Failure -> stringResource(R.string.error)
+            }
+            )
+        },
+        actions = {
+            IconButton(onClick = {
+                if (currentLine is Resource.Success) {
+                    mapViewModel.onDeleteLastVertex(currentLine.data)
+                }
+            }) {
+                Icon(
+                    Icons.Default.AutoFixOff,
+                    stringResource(R.string.delete_last_vertex)
+                )
+            }
+            IconButton(onClick = {
+                if (currentLine is Resource.Success) {
+                    mapViewModel.onReverseCurrentLine(currentLine.data)
+                }
+            }) {
+                Icon(
+                    Icons.Default.CompareArrows,
+                    stringResource(R.string.reverse_current_line)
+                )
+            }
+            IconButton(onClick = {
+                if (currentLine is Resource.Success) {
+                    mapViewModel.onUpdateCurrentLineTypeAndColor(currentLine.data)
+                }
+            }) {
+                Icon(
+                    Icons.Default.Update,
+                    stringResource(R.string.update_current_line_type_and_color)
+                )
+            }
+            IconButton(onClick = {
+                if (currentLine is Resource.Success) {
+                    mapViewModel.onDeleteLine(currentLine.data.id)
+                    mapViewModel.onResetTopBarState()
+                }
+            }) {
+                Icon(
+                    Icons.Default.Delete,
+                    stringResource(R.string.delete)
+                )
+            }
+            IconButton(onClick = {
+                mapViewModel.onResetTopBarState()
+                mapViewModel.onResetCurrentPolyline()
+            }) {
+                Icon(
+                    Icons.Default.Check,
+                    stringResource(R.string.complete_line_description)
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -362,7 +326,6 @@ private fun MapViewContainer(
     val lines = mapViewModel.lines.observeAsState(Resource.Loading()).value
     val setBounds = mapViewModel.setBounds
     val currentLine = mapViewModel.currentLine
-    val drawLine = mapViewModel.drawLine
     val showMeasurements = mapViewModel.showMeasurements
     val refreshAll = mapViewModel.refreshAll
     val currentPolyline = mapViewModel.currentPolyline
@@ -371,6 +334,7 @@ private fun MapViewContainer(
     val updateCurrentMarker = mapViewModel.updateCurrentMarker
     val deleteCurrentMarker = mapViewModel.deleteCurrentMarker
     val newMeasurement = mapViewModel.newMeasurement
+    val topBarState = mapViewModel.topBarState
 
 
     val showDeviceList = mapViewModel.showDeviceList
@@ -394,16 +358,16 @@ private fun MapViewContainer(
                     uiSettings.isZoomControlsEnabled = true
                     setPadding(0, 100, 0, 0)
 
-                    if (drawLine) {
+                    if (topBarState is MapTopBarState.LineEdit) {
                         when (currentLine) {
                             is Resource.Success -> {
                                 setOnMarkerClickListener { marker ->
                                     val line = currentLine.data
                                     val lastVertex = line.vertices.maxByOrNull { it.index }
                                     if (lastVertex != null &&
-                                        lastVertex.measurementId != marker.tag.toString()) {
+                                        lastVertex.measurementId != marker.tag!!.toString()) {
                                         val vertices = currentLine.data.vertices + listOf(Vertex(
-                                            measurementId = marker.tag.toString(),
+                                            measurementId = marker.tag!!.toString(),
                                             index = lastVertex.index + 1
                                         ))
                                         line.vertices = vertices
@@ -417,7 +381,7 @@ private fun MapViewContainer(
                                     val line = Line(
                                         vertices = listOf(
                                             Vertex(
-                                                measurementId = marker.tag.toString(),
+                                                measurementId = marker.tag!!.toString(),
                                                 index = 0
                                             )
                                         ),
@@ -432,20 +396,22 @@ private fun MapViewContainer(
                     } else {
                         setOnMarkerClickListener { marker ->
                             mapViewModel.onSetCurrentMarker(marker)
-                            mapViewModel.onSetSelectedMeasurementId(marker.tag.toString())
+                            mapViewModel.onSetTopBarState(
+                                MapTopBarState.MeasurementEdit(marker.tag!!.toString())
+                            )
                             marker.showInfoWindow()
                             true
                         }
                         setOnMapClickListener {
-                            mapViewModel.onResetSelectedMeasurementId()
+                            mapViewModel.onResetTopBarState()
                             mapViewModel.onResetCurrentMarker()
                         }
                     }
 
                     setOnPolylineClickListener { line ->
                         mapViewModel.onSetCurrentPolyline(line)
-                        mapViewModel.onSetCurrentLine(line.tag.toString())
-                        mapViewModel.onDrawLine()
+                        mapViewModel.onSetCurrentLine(line.tag!!.toString())
+                        mapViewModel.onSetTopBarState(MapTopBarState.LineEdit)
                     }
 
                     if (deletePolyline) {
@@ -739,7 +705,7 @@ fun LineDrawing(mapViewModel: MapViewModel) {
                     onClick = {
                         mapViewModel.onResetCurrentPointObject()
                         mapViewModel.onSetCurrentLineType(line)
-                        mapViewModel.onDrawLine()
+                        mapViewModel.onSetTopBarState(MapTopBarState.LineEdit)
                         showLines = false
                     },
                     modifier = Modifier.padding(4.dp)
