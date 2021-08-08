@@ -4,7 +4,7 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.*
 
 data class Station(
-    var id: String = "",
+    override var id: String = "",
     var name: String = "",
     var backsightId: String = "",
     var backsightVA: Double = 0.0,
@@ -17,4 +17,4 @@ data class Station(
     var z: Double = 0.0,
     @ServerTimestamp
     var date: Date? = null
-)
+) : FirestoreMembers

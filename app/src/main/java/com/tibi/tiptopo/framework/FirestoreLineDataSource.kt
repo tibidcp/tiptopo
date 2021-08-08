@@ -8,10 +8,8 @@ import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineDataSource
 import com.tibi.tiptopo.domain.Line
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.presentation.getAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -49,17 +47,7 @@ class FirestoreLineDataSource @Inject constructor(
     }
 
     @ExperimentalCoroutinesApi
-    override suspend fun getAllLines(): Flow<Resource<List<Line>>> = callbackFlow {
-        val result = firestore
-            .collection(path)
-        val subscription = result.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty) {
-                val linetList = snapshot.map { it.toObject<Line>() }.toList()
-                trySend(Resource.Success(linetList))
-            }
-        }
-        awaitClose { subscription.remove() }
-    }
+    override suspend fun getAllLines() = firestore.collection(path).getAll<Line>()
 
     override suspend fun deleteLine(lineId: String) {
         firestore.collection(path).document(lineId).delete()

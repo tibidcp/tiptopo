@@ -7,7 +7,7 @@ import com.tibi.tiptopo.R
 import java.util.*
 
 data class Measurement(
-    var id: String = "",
+    override var id: String = "",
     var stationId: String = "",
     var name: String = "",
     var number: Int = 0,
@@ -21,7 +21,7 @@ data class Measurement(
     var longitude: Double = 0.0,
     @ServerTimestamp
     var date: Date? = null
-)
+) : FirestoreMembers
 
 enum class PointType(
     val vectorResId: Int,

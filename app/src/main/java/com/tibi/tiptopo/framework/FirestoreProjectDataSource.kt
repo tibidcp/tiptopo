@@ -2,18 +2,15 @@ package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.project.ProjectDataSource
 import com.tibi.tiptopo.domain.Project
-import javax.inject.Inject
+import com.tibi.tiptopo.presentation.getAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 class FirestoreProjectDataSource @Inject constructor(
     private val firestore: FirebaseFirestore
@@ -47,15 +44,5 @@ class FirestoreProjectDataSource @Inject constructor(
     }
 
     @ExperimentalCoroutinesApi
-    override suspend fun getAllProjects(): Flow<Resource<List<Project>>> = callbackFlow {
-        val result = firestore
-            .collection(path)
-        val subscription = result.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty) {
-                val projectList = snapshot.map { it.toObject<Project>() }.toList()
-                offer(Resource.Success(projectList))
-            }
-        }
-        awaitClose { subscription.remove() }
-    }
+    override suspend fun getAllProjects() = firestore.collection(path).getAll<Project>()
 }

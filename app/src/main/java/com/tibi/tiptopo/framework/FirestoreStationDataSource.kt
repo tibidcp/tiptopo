@@ -2,13 +2,14 @@ package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.station.StationDataSource
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.presentation.getAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -49,31 +50,23 @@ class FirestoreStationDataSource @Inject constructor(
     }
 
     @ExperimentalCoroutinesApi
-    override suspend fun getAllStations(): Flow<Resource<List<Station>>> = callbackFlow {
-        val result = firestore
-            .collection(path)
-        val subscription = result.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty) {
-                val stationList = snapshot.map { it.toObject<Station>() }.toList()
-                trySend(Resource.Success(stationList))
-            }
-        }
-        awaitClose { subscription.remove() }
-    }
+    override suspend fun getAllStations() = firestore.collection(path).getAll<Station>()
 
     @ExperimentalCoroutinesApi
     override suspend fun getLastStation(): Flow<Resource<Station>> = callbackFlow {
         val result = firestore
             .collection(path)
-        val subscription = result.addSnapshotListener { snapshot, _ ->
-            if (!snapshot!!.isEmpty) {
-                val station = snapshot
-                    .map { it.toObject<Station>() }.maxByOrNull { it.date!! }
-                if (station != null) {
-                    trySend(Resource.Success(station))
-                }
+        val query = result.orderBy("date", Query.Direction.DESCENDING).limit(1)
+
+        query.get().addOnFailureListener {
+            trySend(Resource.Failure(it))
+            return@addOnFailureListener
+        }.addOnSuccessListener { snapShot ->
+            if (!snapShot.isEmpty) {
+                val station = snapShot.first().toObject<Station>()
+                trySend(Resource.Success(station))
             }
         }
-        awaitClose { subscription.remove() }
+        awaitClose()
     }
 }

@@ -7,14 +7,14 @@ import com.tibi.tiptopo.R
 import java.util.*
 
 data class Line(
-    var id: String = "",
+    override var id: String = "",
     var name: String = "",
     var color: Int = Color.BLACK,
     var type: LineType = LineType.Continuous,
     var vertices: List<Vertex> = listOf(),
     @ServerTimestamp
     var date: Date? = null
-)
+) : FirestoreMembers
 
 enum class LineType(
     val vectorResId: Int,

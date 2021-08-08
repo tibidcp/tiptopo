@@ -4,12 +4,12 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.*
 
 data class Project(
-    var id: String = "",
+    override var id: String = "",
     var name: String = "",
     @ServerTimestamp
     var date: Date? = null,
     var totalStation: TotalStation = TotalStation.NikonNPL352
-)
+) : FirestoreMembers
 
 enum class TotalStation {
     NikonNPL352,
