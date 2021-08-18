@@ -20,7 +20,7 @@
         android:fullBackupContent="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_tiptopo"
         android:supportsRtl="true"
         android:theme="@style/Theme.Tiptopo">
 
@@ -39,7 +39,7 @@
 
         <activity
             android:name=".presentation.MainActivity"
-            android:label="@string/title_activity_maps">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
