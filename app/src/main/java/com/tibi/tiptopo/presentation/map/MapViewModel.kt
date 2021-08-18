@@ -2,6 +2,7 @@ package com.tibi.tiptopo.presentation.map
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.graphics.Color
 import android.util.Log
 import androidx.activity.result.ActivityResult
@@ -12,8 +13,14 @@ import androidx.lifecycle.*
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
 import app.akexorcist.bluetotohspp.library.BluetoothState
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.Polyline
+import com.google.maps.android.ktx.addMarker
+import com.google.maps.android.ktx.addPolyline
 import com.squareup.moshi.*
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.tibi.tiptopo.data.Resource
@@ -22,6 +29,7 @@ import com.tibi.tiptopo.data.measurement.MeasurementRepository
 import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.*
+import com.tibi.tiptopo.presentation.bitmapDescriptorFromVector
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import com.tibi.tiptopo.presentation.format
 import com.tibi.tiptopo.presentation.getCoordinate
@@ -29,6 +37,7 @@ import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import com.tibi.tiptopo.presentation.toLatLng
 import com.tibi.tiptopo.presentation.toRawDegrees
+import com.tibi.tiptopo.presentation.ui.setPolylinePattern
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -48,7 +57,9 @@ class MapViewModel @Inject constructor(
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
-    var topBarState by mutableStateOf<MapTopBarState>(MapTopBarState.Main)
+    private val newMeasurements = mutableListOf<Measurement>()
+
+    var mapState by mutableStateOf<MapState>(MapState.Main)
         private set
 
     var currentLine by mutableStateOf<Resource<Line>>(Resource.Loading())
@@ -81,10 +92,7 @@ class MapViewModel @Inject constructor(
     var deleteCurrentPolyline by mutableStateOf(false)
         private set
 
-    var refreshAll by mutableStateOf(false)
-        private set
-
-    var showMeasurements by mutableStateOf(true)
+    var refreshAll by mutableStateOf(true)
         private set
 
     var setBounds by mutableStateOf(false)
@@ -134,12 +142,16 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun onSetTopBarState(state: MapTopBarState) {
-        topBarState = state
+    fun onUpdateNewMeasurementsList(measurement: Measurement) {
+        newMeasurements.add(measurement)
     }
 
-    fun onResetTopBarState() {
-        topBarState = MapTopBarState.Main
+    fun onSetMapState(state: MapState) {
+        mapState = state
+    }
+
+    fun onResetMapState() {
+        mapState = MapState.Main
     }
 
     fun refresh() {
@@ -168,7 +180,7 @@ class MapViewModel @Inject constructor(
         newMeasurement = measurement
     }
 
-    fun onResetNewMeasurement() {
+    private fun onResetNewMeasurement() {
         newMeasurement = null
     }
 
@@ -180,7 +192,7 @@ class MapViewModel @Inject constructor(
         currentPolyline = null
     }
 
-    fun onSetCurrentMarker(marker: Marker) {
+    private fun onSetCurrentMarker(marker: Marker) {
         currentMarker = marker
     }
 
@@ -264,64 +276,52 @@ class MapViewModel @Inject constructor(
         currentPointObject = PointType.Point
     }
 
-    fun onShowMeasurementsChangeState() {
-        showMeasurements = !showMeasurements
-    }
-
     fun addMeasurement(measurement: Measurement, stationId: String) {
+        measurement.stationId = stationId
+        onSetNewMeasurement(measurement)
         viewModelScope.launch {
-            measurement.stationId = stationId
             measurementRepository.addMeasurement(measurement)
         }
     }
 
-    fun addLine(line: Line) {
+    private fun addLine(line: Line) {
+        line.color = currentColor
+        currentLine = Resource.Success(line)
         viewModelScope.launch {
-            currentLine = try {
-                line.color = currentColor
-                lineRepository.addLine(line)
-            } catch (e: Exception) {
-                Resource.Failure(e)
-            }
+            lineRepository.addLine(line)
         }
     }
 
-    fun updateLine(line: Line) {
+    private fun updateLine(line: Line) {
+        currentLine = Resource.Loading()
+        currentLine = Resource.Success(line)
         viewModelScope.launch {
-            currentLine = try {
-                lineRepository.updateLine(line)
-            } catch (e: Exception) {
-                Resource.Failure(e)
-            }
+            lineRepository.updateLine(line)
         }
     }
 
-    fun onSetBounds() {
+    fun onSetBoundsStart() {
         setBounds = true
     }
 
-    fun onSetBoundsComplete() {
+    private fun onSetBoundsComplete() {
         setBounds = false
     }
 
-    fun onUpdateCurrentMarker() {
+    private fun onUpdateCurrentMarker() {
         updateCurrentMarker = true
     }
 
-    fun onUpdateCurrentMarkerComplete() {
+    private fun onUpdateCurrentMarkerComplete() {
         updateCurrentMarker = false
     }
 
-    fun onDeleteCurrentMarker() {
+    private fun onDeleteCurrentMarker() {
         deleteCurrentMarker = true
     }
 
     fun onDeleteCurrentMarkerComplete() {
         deleteCurrentMarker = false
-    }
-
-    fun onRefreshAll() {
-        refreshAll = true
     }
 
     fun onRefreshAllComplete() {
@@ -363,13 +363,13 @@ class MapViewModel @Inject constructor(
 
     fun onDeleteSelectedMeasurement() {
         onDeleteCurrentMarker()
-        val state = topBarState
+        val state = mapState
         viewModelScope.launch {
-            if (state is MapTopBarState.MeasurementEdit) {
+            if (state is MapState.MeasurementEdit) {
                 measurementRepository.deleteMeasurement(state.id)
             }
         }
-        topBarState = MapTopBarState.Main
+        mapState = MapState.Main
     }
 
     fun onConnectBluetooth() {
@@ -463,8 +463,8 @@ class MapViewModel @Inject constructor(
     fun onUpdateSelectedMeasurementType() {
         onUpdateCurrentMarker()
         viewModelScope.launch {
-            val state = topBarState
-            if (state is MapTopBarState.MeasurementEdit) {
+            val state = mapState
+            if (state is MapState.MeasurementEdit) {
                 val id = state.id
                 val measurement = measurementRepository.getMeasurement(id)
                 if (measurement is Resource.Success) {
@@ -473,7 +473,7 @@ class MapViewModel @Inject constructor(
                 }
             }
         }
-        topBarState = MapTopBarState.Main
+        mapState = MapState.Main
     }
 
     fun onDeleteLastVertex(line: Line) {
@@ -508,10 +508,171 @@ class MapViewModel @Inject constructor(
             updateLine(line)
         }
     }
+
+    fun setOnLineContinueMarkerClickListener(googleMap: GoogleMap, line: Line) {
+        googleMap.apply {
+            setOnMarkerClickListener { marker ->
+                val lastVertex = line.vertices.maxByOrNull { it.index }
+                if (lastVertex != null &&
+                    lastVertex.measurementId != marker.tag!!.toString()) {
+                    val vertices = line.vertices + listOf(Vertex(
+                        measurementId = marker.tag!!.toString(),
+                        index = lastVertex.index + 1
+                    ))
+                    line.vertices = vertices
+                    updateLine(line)
+                }
+                true
+            }
+        }
+    }
+
+    fun setOnNewLineMarkerClickListener(googleMap: GoogleMap) {
+        googleMap.apply {
+            setOnMarkerClickListener { marker ->
+                val line = Line(
+                    vertices = listOf(
+                        Vertex(
+                            measurementId = marker.tag!!.toString(),
+                            index = 0
+                        )
+                    ),
+                    type = currentLineType ?: LineType.Continuous
+                )
+                addLine(line)
+                true
+            }
+        }
+    }
+
+    fun setOnDefaultMarkerClickListener(googleMap: GoogleMap) {
+        googleMap.apply {
+            setOnMarkerClickListener { marker ->
+                onSetCurrentMarker(marker)
+                onSetMapState(MapState.MeasurementEdit(marker.tag!!.toString()))
+                marker.showInfoWindow()
+                true
+            }
+        }
+    }
+
+    fun onContinueCurrentPolyline(
+        googleMap: GoogleMap,
+        polyline: Polyline
+    ) {
+        val measurementsValue = measurements.value
+        val lineValue = currentLine
+        googleMap.apply {
+            if (measurementsValue is Resource.Success && lineValue is Resource.Success) {
+                val line = lineValue.data
+                val allMeasurements = measurementsValue.data + newMeasurements
+                polyline.points.clear()
+                polyline.color = line.color
+                polyline.setPolylinePattern(line.type)
+                polyline.points = line.vertices
+                    .sortedBy { it.index }
+                    .filter { vertex ->
+                        allMeasurements.any {
+                            it.id == vertex.measurementId
+                        }
+                    }
+                    .map { vertex ->
+                        val measurement = allMeasurements
+                            .first { it.id == vertex.measurementId }
+                        LatLng(measurement.latitude, measurement.longitude)
+                    }
+            }
+        }
+    }
+
+    fun onCreateNewPolyline(googleMap: GoogleMap) {
+        val measurementsValue = measurements.value
+        val lineValue = currentLine
+        googleMap.apply {
+            if (measurementsValue is Resource.Success && lineValue is Resource.Success) {
+                val line = lineValue.data
+                val allMeasurements = measurementsValue.data + newMeasurements
+
+                val polyline = addPolyline {
+                    clickable(true)
+                    color(line.color)
+                    width(5f)
+
+                    line.vertices
+                        .sortedBy { it.index }
+                        .filter { vertex ->
+                            allMeasurements.any {
+                                it.id == vertex.measurementId
+                            }
+                        }
+                        .map { vertex ->
+                            val measurement = allMeasurements
+                                .first { it.id == vertex.measurementId }
+                            LatLng(measurement.latitude, measurement.longitude)
+                        }.forEach { add(it) }
+                }
+                polyline.setPolylinePattern(line.type)
+                polyline.tag = line.id
+                onSetCurrentPolyline(polyline)
+            }
+        }
+    }
+
+    fun onCreateNewMarker(googleMap: GoogleMap, context: Context, newMeasurement: Measurement) {
+        googleMap.apply {
+            addMarker {
+                position(LatLng(newMeasurement.latitude, newMeasurement.longitude))
+                title(newMeasurement.number.toString())
+                icon(bitmapDescriptorFromVector(
+                    context,
+                    newMeasurement.type.vectorResId,
+                    Color.BLACK
+                ))
+                anchor(newMeasurement.type.anchorX, newMeasurement.type.anchorY)
+            }.tag = newMeasurement.id
+            onResetNewMeasurement()
+        }
+    }
+
+    fun onUpdateCurrentMarkerType(googleMap: GoogleMap, context: Context, currentMarker: Marker) {
+        googleMap.apply {
+            currentMarker.setIcon(
+                bitmapDescriptorFromVector(
+                    context,
+                    currentPointObject.vectorResId,
+                    Color.BLACK
+                )
+            )
+            currentMarker.setAnchor(
+                currentPointObject.anchorX,
+                currentPointObject.anchorY
+            )
+            onUpdateCurrentMarkerComplete()
+            onResetCurrentMarker()
+        }
+    }
+
+    fun onSetBounds(googleMap: GoogleMap) {
+        val measurementsValue = measurements.value
+        googleMap.apply {
+            if (measurementsValue is Resource.Success) {
+                val measurementsData = measurementsValue.data
+                val bounds = LatLngBounds.builder()
+                measurementsData.forEach {
+                        bounds.include(LatLng(it.latitude, it.longitude))
+                        animateCamera(CameraUpdateFactory.newLatLngBounds(
+                            bounds.build(),
+                            20
+                        ))
+                    }
+            }
+            onSetBoundsComplete()
+        }
+    }
 }
 
-sealed class MapTopBarState {
-    object Main : MapTopBarState()
-    object LineEdit : MapTopBarState()
-    data class MeasurementEdit(val id: String) : MapTopBarState()
+sealed class MapState {
+    object Main : MapState()
+    object LineEdit : MapState()
+    data class MeasurementEdit(val id: String) : MapState()
 }

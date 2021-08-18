@@ -1,7 +1,13 @@
 package com.tibi.tiptopo.presentation
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.geometry.Point
 import com.tibi.tiptopo.domain.Measurement
@@ -19,6 +25,16 @@ const val SCALE = 10.0
 
 fun Context.toast(message: CharSequence) =
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+fun bitmapDescriptorFromVector(context: Context, vectorResId: Int, color: Int): BitmapDescriptor? {
+    return ContextCompat.getDrawable(context, vectorResId)?.run {
+        DrawableCompat.setTint(this, color)
+        setBounds(0, 0, intrinsicWidth, intrinsicHeight)
+        val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
+        draw(Canvas(bitmap))
+        BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+}
 
 fun LatLng.toPoint(): Point {
     val factory = CRSFactory()

@@ -32,10 +32,7 @@ suspend inline fun <reified T : FirestoreMembers> CollectionReference.getAll():
                                 return@addOnFailureListener
                             }
                             .addOnSuccessListener { serverSnapshot ->
-                                if (serverSnapshot.isEmpty) {
-                                    //emit empty list
-                                    trySend(Resource.Success(result))
-                                } else {
+                                if (!serverSnapshot.isEmpty) {
                                     //emit all data from server
                                     result += serverSnapshot.map { it.toObject<T>() }.toList()
                                     trySend(Resource.Success(result))

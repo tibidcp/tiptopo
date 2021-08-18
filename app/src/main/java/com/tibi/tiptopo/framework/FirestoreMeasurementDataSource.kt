@@ -2,6 +2,7 @@ package com.tibi.tiptopo.framework
 
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.tibi.tiptopo.data.Resource
@@ -32,7 +33,7 @@ class FirestoreMeasurementDataSource @Inject constructor(
     override suspend fun getMeasurement(measurementId: String): Resource<Measurement> {
         val result = firestore.collection(path)
             .document(measurementId)
-            .get()
+            .get(Source.CACHE)
             .await()
             .toObject<Measurement>() ?: return Resource.Loading()
         return Resource.Success(result)

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">tiptopo</string>
+    <string name="app_name">TipTopo</string>
     <string name="title_activity_maps">Map</string>
     <string name="login">Login</string>
     <string name="logout">Logout</string>
@@ -43,4 +43,6 @@
     <string name="reverse_current_line">Reverse current line</string>
     <string name="export_raw_file">Export raw file</string>
     <string name="refresh_all">Refresh all</string>
+    <string name="update_measurement_type">Update measurement type</string>
+    <string name="set_map_bounds">Set map bounds</string>
 </resources>
