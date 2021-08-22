@@ -20,6 +20,7 @@ import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.round
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 const val SCALE = 10.0
 
@@ -103,6 +104,15 @@ fun Point.directAngTo(pointB: Point): Double {
     return directAng
 }
 
+fun Point.polylineAngleTo(pointB: Point): Double {
+    val directAng = this.directAngTo(pointB)
+    return if (directAng < 90) {
+        directAng + 270
+    } else {
+        directAng - 90
+    }
+}
+
 fun Measurement.directAngTo(measurementB: Measurement): Double {
     val measurementA = this
     val latLngA = LatLng(measurementA.latitude, measurementA.longitude)
@@ -162,3 +172,19 @@ fun Double.toRawDegrees(): String {
 fun Double.format() = "%.3f".format(this)
 
 fun Int.format() = "%02d".format(this)
+
+fun Point.distanceTo(end: Point): Double {
+    val start = this
+    return sqrt(((end.x - start.x) * (end.x - start.x)) + ((end.y - start.y) * (end.y - start.y)))
+}
+
+fun pointOnLineCoordinate(start: Point, end: Point, distance: Double): Point {
+    val length = start.distanceTo(end)
+    if (distance >= length || distance <= 0) {
+        throw IllegalArgumentException()
+    }
+    val ratio = distance / length
+    val x = start.x + ((end.x - start.x) * ratio)
+    val y = start.y + ((end.y - start.y) * ratio)
+    return Point(x, y)
+}

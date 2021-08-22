@@ -45,4 +45,9 @@
     <string name="refresh_all">Refresh all</string>
     <string name="update_measurement_type">Update measurement type</string>
     <string name="set_map_bounds">Set map bounds</string>
+    <string name="small_metal_fence">Small melal fence</string>
+    <string name="big_metal_fence">Big metal fence</string>
+    <string name="wall">Wall</string>
+    <string name="big_stone_fence">Big stone fence</string>
+    <string name="grid">Grid</string>
 </resources>

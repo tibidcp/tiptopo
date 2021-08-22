@@ -39,7 +39,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,11 +48,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.akexorcist.bluetotohspp.library.DeviceList
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
@@ -65,7 +61,6 @@ import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
-import com.tibi.tiptopo.presentation.ui.drawAll
 import kotlinx.coroutines.launch
 
 val colorList = listOf(
@@ -132,8 +127,6 @@ fun MapScreen(
     }
 }
 
-
-
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
 @Composable
@@ -145,7 +138,7 @@ fun MapView(mapViewModel: MapViewModel, onSetStation: () -> Unit) {
         is Resource.Loading -> StationButton(onSetStation, stringResource(R.string.no_station))
         is Resource.Success -> {
             val currentStation = stations.data.sortedByDescending { it.date }.first()
-            MapViewContainer(mapView, mapViewModel, currentStation, onSetStation)
+            MapBox(mapView, mapViewModel, currentStation, onSetStation)
         }
     }
 }
@@ -291,14 +284,64 @@ fun StationButton(onSetStation: () -> Unit, text: String) {
     }
 }
 
-@ExperimentalFoundationApi
 @ExperimentalAnimationApi
+@ExperimentalFoundationApi
+@Composable
+fun MapBox(
+    map: MapView,
+    mapViewModel: MapViewModel,
+    station: Station,
+    onSetStation: () -> Unit,
+) {
+    DeviceList(mapViewModel)
+    Box {
+        MapViewContainer(map, mapViewModel, station)
+        TopButtonsRow(mapViewModel, station, onSetStation)
+        DrawingTools(mapViewModel = mapViewModel)
+    }
+}
+
+@Composable
+fun DeviceList(mapViewModel: MapViewModel) {
+    val showDeviceList = mapViewModel.showDeviceList
+    val openDeviceListActivity =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            mapViewModel.onStopShowDeviceList(result)
+        }
+    if (showDeviceList) {
+        openDeviceListActivity.launch(
+            Intent(LocalContext.current, DeviceList::class.java)
+        )
+    }
+}
+
+@Composable
+fun TopButtonsRow(
+    mapViewModel: MapViewModel,
+    station: Station,
+    onSetStation: () -> Unit
+) {
+    Row {
+        StationButton(onSetStation = { onSetStation() }, text = station.name)
+
+        Button(onClick = { mapViewModel.onSetBoundsStart() }, Modifier.padding(8.dp)) {
+            Icon(Icons.Default.Fullscreen, stringResource(R.string.set_map_bounds))
+        }
+
+        Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
+            Icon(
+                Icons.Default.Bluetooth,
+                stringResource(R.string.bluetooth_button_description)
+            )
+        }
+    }
+}
+
 @Composable
 private fun MapViewContainer(
     map: MapView,
     mapViewModel: MapViewModel,
-    station: Station,
-    onSetStation: () -> Unit
+    station: Station
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -315,151 +358,122 @@ private fun MapViewContainer(
     val currentPolyline = mapViewModel.currentPolyline
     val deletePolyline = mapViewModel.deleteCurrentPolyline
 
+    AndroidView({ map }) { mapView ->
+        coroutineScope.launch {
+            val googleMap = mapView.awaitMap()
+            googleMap.apply {
+                mapType = GoogleMap.MAP_TYPE_NONE
+                uiSettings.isZoomControlsEnabled = true
+                setPadding(0, 100, 0, 0)
 
-    val showDeviceList = mapViewModel.showDeviceList
-    val openDeviceListActivity =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            mapViewModel.onStopShowDeviceList(result)
-        }
-    if (showDeviceList) {
-        openDeviceListActivity.launch(
-            Intent(LocalContext.current, DeviceList::class.java)
-        )
-    }
-
-    Box {
-        AndroidView({ map }) { mapView ->
-            coroutineScope.launch {
-                val googleMap = mapView.awaitMap()
-                googleMap.apply {
-                    mapType = GoogleMap.MAP_TYPE_NONE
-                    uiSettings.isZoomControlsEnabled = true
-                    setPadding(0, 100, 0, 0)
-
-                    if (mapState is MapState.LineEdit) {
-                        when (currentLine) {
-                            is Resource.Success -> {
-                                //Continue line marker click listener
-                                mapViewModel.setOnLineContinueMarkerClickListener(
-                                    googleMap, currentLine.data
-                                )
-                            }
-                            is Resource.Loading -> {
-                                //New line marker click listener
-                                mapViewModel.setOnNewLineMarkerClickListener(googleMap)
-                            }
-                            is Resource.Failure -> {  }
-                        }
-                    } else {
-                        //Default marker click listener
-                        mapViewModel.setOnDefaultMarkerClickListener(googleMap)
-                    }
-
-                    setOnMapClickListener {
-                        when (mapState) {
-                            //Reset current line with click on free space on map
-                            MapState.LineEdit -> {
-                                mapViewModel.onResetMapState()
-                                mapViewModel.onResetCurrentLine()
-                                mapViewModel.onResetCurrentPolyline()
-                            }
-                            //Reset current marker with click on free space on map
-                            is MapState.MeasurementEdit -> {
-                                mapViewModel.onResetMapState()
-                                mapViewModel.onResetCurrentMarker()
-                            }
-                            MapState.Main -> {}
-                        }
-                    }
-
-                    //Polyline click listener
-                    setOnPolylineClickListener { line ->
-                        mapViewModel.onSetCurrentPolyline(line)
-                        mapViewModel.onSetCurrentLine(line.tag!!.toString())
-                        mapViewModel.onSetMapState(MapState.LineEdit)
-                    }
-
-                    if (currentPolyline != null) {
-                        //Add new point to polyline
-                        mapViewModel.onContinueCurrentPolyline(googleMap, currentPolyline)
-                        //Delete polyline
-                        if (deletePolyline) {
-                            currentPolyline.remove()
-                            mapViewModel.onResetCurrentPolyline()
-                            mapViewModel.onDeleteCurrentPolylineComplete()
-                        }
-                    } else {
-                        //Add new polyline
-                        mapViewModel.onCreateNewPolyline(googleMap)
-                    }
-
-                    if (currentMarker != null) {
-                        //Update marker
-                        if (updateCurrentMarker) {
-                            mapViewModel.onUpdateCurrentMarkerType(
-                                googleMap,
-                                context,
-                                currentMarker
+                if (mapState is MapState.LineEdit) {
+                    when (currentLine) {
+                        is Resource.Success -> {
+                            //Continue line marker click listener
+                            mapViewModel.setOnLineContinueMarkerClickListener(
+                                googleMap, currentLine.data
                             )
                         }
-                        //Delete marker
-                        if (deleteCurrentMarker) {
-                            currentMarker.remove()
-                            mapViewModel.onDeleteCurrentMarkerComplete()
+                        is Resource.Loading -> {
+                            //New line marker click listener
+                            mapViewModel.setOnNewLineMarkerClickListener(googleMap)
+                        }
+                        is Resource.Failure -> {  }
+                    }
+                } else {
+                    //Default marker click listener
+                    mapViewModel.setOnDefaultMarkerClickListener(googleMap)
+                }
+
+                setOnMapClickListener {
+                    when (mapState) {
+                        //Reset current line with click on free space on map
+                        MapState.LineEdit -> {
+                            mapViewModel.onResetMapState()
+                            mapViewModel.onResetCurrentLine()
+                            mapViewModel.onResetCurrentPolyline()
+                        }
+                        //Reset current marker with click on free space on map
+                        is MapState.MeasurementEdit -> {
+                            mapViewModel.onResetMapState()
                             mapViewModel.onResetCurrentMarker()
                         }
+                        MapState.Main -> {}
                     }
+                }
 
-                    //Add new marker
-                    if (newMeasurement != null) {
-                        mapViewModel.onCreateNewMarker(googleMap, context, newMeasurement)
-                        mapViewModel.onUpdateNewMeasurementsList(newMeasurement)
+                //Polyline click listener
+                setOnPolylineClickListener { line ->
+                    mapViewModel.onSetCurrentPolyline(line)
+                    mapViewModel.onSetCurrentLine(line.tag!!.toString())
+                    mapViewModel.onSetMapState(MapState.LineEdit)
+                }
+
+                if (currentPolyline != null) {
+                    //Add new point to polyline
+                    mapViewModel.onContinueCurrentPolyline(context, googleMap, currentPolyline)
+                    //Delete polyline
+                    if (deletePolyline) {
+                        mapViewModel.onDeletePolylineMarkers(currentPolyline.tag!!.toString())
+                        currentPolyline.remove()
+                        mapViewModel.onResetCurrentPolyline()
+                        mapViewModel.onDeleteCurrentPolylineComplete()
                     }
+                } else {
+                    //Add new polyline
+                    mapViewModel.onCreateNewPolyline(context, googleMap)
+                }
 
-                    //Add new measurement with long click on map
-                    setOnMapLongClickListener {
-                        mapViewModel.addMeasurement(
-                            Measurement(
-                                latitude = it.latitude,
-                                longitude = it.longitude,
-                                type = mapViewModel.currentPointObject,
-                                name = it.toString()
-                            ),
-                            station.id
+                if (currentMarker != null) {
+                    //Update marker
+                    if (updateCurrentMarker) {
+                        mapViewModel.onUpdateCurrentMarkerType(
+                            googleMap,
+                            context,
+                            currentMarker
                         )
                     }
-
-                    //Set Bounds
-                    if (setBounds) {
-                        mapViewModel.onSetBounds(googleMap)
+                    //Delete marker
+                    if (deleteCurrentMarker) {
+                        currentMarker.remove()
+                        mapViewModel.onDeleteCurrentMarkerComplete()
+                        mapViewModel.onResetCurrentMarker()
                     }
+                }
 
-                    //Initial draw all objects on map
-                    if (refreshAll) {
-                        if (measurements is Resource.Success && lines is Resource.Success) {
-                            drawAll(context, measurements.data, lines.data)
-                            mapViewModel.onRefreshAllComplete()
-                        }
+                //Add new marker
+                if (newMeasurement != null) {
+                    mapViewModel.onCreateNewMarker(googleMap, context, newMeasurement)
+                    mapViewModel.onUpdateNewMeasurementsList(newMeasurement)
+                }
+
+                //Add new measurement with long click on map
+                setOnMapLongClickListener {
+                    mapViewModel.addMeasurement(
+                        Measurement(
+                            latitude = it.latitude,
+                            longitude = it.longitude,
+                            type = mapViewModel.currentPointObject,
+                            name = it.toString()
+                        ),
+                        station.id
+                    )
+                }
+
+                //Set Bounds
+                if (setBounds) {
+                    mapViewModel.onSetBounds(googleMap)
+                }
+
+                //Initial draw all objects on map
+                if (refreshAll) {
+                    if (measurements is Resource.Success && lines is Resource.Success) {
+                        mapViewModel.drawAll(context, googleMap, measurements.data, lines.data)
+                        mapViewModel.onRefreshAllComplete()
                     }
                 }
             }
         }
-
-        Row {
-            StationButton(onSetStation = { onSetStation() }, text = station.name)
-
-            Button(onClick = { mapViewModel.onSetBoundsStart() }, Modifier.padding(8.dp)) {
-                Icon(Icons.Default.Fullscreen, stringResource(R.string.set_map_bounds))
-            }
-
-            Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
-                Icon(
-                    Icons.Default.Bluetooth,
-                    stringResource(R.string.bluetooth_button_description)
-                )
-            }
-        }
-        DrawingTools(mapViewModel = mapViewModel)
     }
 }
 
@@ -502,8 +516,8 @@ fun LineDrawing(mapViewModel: MapViewModel) {
                     modifier = Modifier.padding(4.dp)
                 ) {
                     Icon(
-                        painter = painterResource(line.vectorResId),
-                        contentDescription = stringResource(line.contentDescription)
+                        painter = painterResource(line.lineVectorResId),
+                        contentDescription = stringResource(line.lineContentDescription)
                     )
                 }
             }
@@ -518,9 +532,9 @@ fun LineDrawing(mapViewModel: MapViewModel) {
             Text(text = "Line")
         } else {
             Icon(
-                painter = painterResource(id = currentLineType.vectorResId),
+                painter = painterResource(id = currentLineType.lineVectorResId),
                 contentDescription = stringResource(
-                    id = currentLineType.contentDescription
+                    id = currentLineType.lineContentDescription
                 )
             )
         }

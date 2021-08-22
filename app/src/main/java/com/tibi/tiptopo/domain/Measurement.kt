@@ -41,5 +41,6 @@ enum class PointType(
     Tree(R.drawable.ic_tree, R.string.tree, 0.5f, 0.83f),
     TreeConifer(R.drawable.ic_tree_conifer, R.string.tree_conifer, 0.5f, 0.885f),
     Hatchway(R.drawable.ic_hatchway, R.string.hatchway, 0.5f, 0.5f),
-    Station(R.drawable.ic_station, R.string.station, 0.5f, 0.5f)
+    Station(R.drawable.ic_station, R.string.station, 0.5f, 0.5f),
+    Grid(R.drawable.ic_grid, R.string.grid, 0.5f, 0.5f)
 }

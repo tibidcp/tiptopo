@@ -15,10 +15,14 @@ import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListe
 import app.akexorcist.bluetotohspp.library.BluetoothState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.Polyline
+import com.google.maps.android.geometry.Point
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.squareup.moshi.*
@@ -31,18 +35,27 @@ import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.bitmapDescriptorFromVector
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
+import com.tibi.tiptopo.presentation.distanceTo
 import com.tibi.tiptopo.presentation.format
 import com.tibi.tiptopo.presentation.getCoordinate
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.parser.NikonRawParser
+import com.tibi.tiptopo.presentation.pointOnLineCoordinate
+import com.tibi.tiptopo.presentation.polylineAngleTo
 import com.tibi.tiptopo.presentation.toLatLng
 import com.tibi.tiptopo.presentation.toRawDegrees
-import com.tibi.tiptopo.presentation.ui.setPolylinePattern
+import com.tibi.tiptopo.presentation.toPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
+
+
+const val PatternDash = 20f
+const val PatternGap = 10f
+const val PolylineTagPrefix = "P_"
+const val PolylineStep = 3
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -58,6 +71,10 @@ class MapViewModel @Inject constructor(
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
     private val newMeasurements = mutableListOf<Measurement>()
+
+    private val polylines = mutableMapOf<String, Polyline>()
+
+    private val markers = mutableListOf<Marker>()
 
     var mapState by mutableStateOf<MapState>(MapState.Main)
         private set
@@ -126,18 +143,21 @@ class MapViewModel @Inject constructor(
 
     val measurements = refreshTrigger.switchMap {
         liveData {
+            emit(Resource.Loading())
             measurementRepository.getAllMeasurements().collect { emit(it) }
         }
     }
 
     val lines = refreshTrigger.switchMap {
         liveData {
+            emit(Resource.Loading())
             lineRepository.getAllLines().collect { emit(it) }
         }
     }
 
     val stations = refreshTrigger.switchMap {
         liveData {
+            emit(Resource.Loading())
             stationRepository.getAllStations().collect { emit(it) }
         }
     }
@@ -512,11 +532,21 @@ class MapViewModel @Inject constructor(
     fun setOnLineContinueMarkerClickListener(googleMap: GoogleMap, line: Line) {
         googleMap.apply {
             setOnMarkerClickListener { marker ->
+                val tag = marker.tag!!.toString()
+                if (tag.startsWith(PolylineTagPrefix)) {
+                    val id = tag.substring(PolylineTagPrefix.length)
+                    polylines[id]?.let {
+                        onSetCurrentPolyline(it)
+                        onSetCurrentLine(id)
+                        onSetMapState(MapState.LineEdit)
+                    }
+                    return@setOnMarkerClickListener true
+                }
                 val lastVertex = line.vertices.maxByOrNull { it.index }
                 if (lastVertex != null &&
                     lastVertex.measurementId != marker.tag!!.toString()) {
                     val vertices = line.vertices + listOf(Vertex(
-                        measurementId = marker.tag!!.toString(),
+                        measurementId = tag,
                         index = lastVertex.index + 1
                     ))
                     line.vertices = vertices
@@ -530,10 +560,20 @@ class MapViewModel @Inject constructor(
     fun setOnNewLineMarkerClickListener(googleMap: GoogleMap) {
         googleMap.apply {
             setOnMarkerClickListener { marker ->
+                val tag = marker.tag!!.toString()
+                if (tag.startsWith(PolylineTagPrefix)) {
+                    val id = tag.substring(PolylineTagPrefix.length)
+                    polylines[id]?.let {
+                        onSetCurrentPolyline(it)
+                        onSetCurrentLine(id)
+                        onSetMapState(MapState.LineEdit)
+                    }
+                    return@setOnMarkerClickListener true
+                }
                 val line = Line(
                     vertices = listOf(
                         Vertex(
-                            measurementId = marker.tag!!.toString(),
+                            measurementId = tag,
                             index = 0
                         )
                     ),
@@ -548,8 +588,18 @@ class MapViewModel @Inject constructor(
     fun setOnDefaultMarkerClickListener(googleMap: GoogleMap) {
         googleMap.apply {
             setOnMarkerClickListener { marker ->
+                val tag = marker.tag!!.toString()
+                if (tag.startsWith(PolylineTagPrefix)) {
+                    val id = tag.substring(PolylineTagPrefix.length)
+                    polylines[id]?.let {
+                        onSetCurrentPolyline(it)
+                        onSetCurrentLine(id)
+                        onSetMapState(MapState.LineEdit)
+                    }
+                    return@setOnMarkerClickListener true
+                }
                 onSetCurrentMarker(marker)
-                onSetMapState(MapState.MeasurementEdit(marker.tag!!.toString()))
+                onSetMapState(MapState.MeasurementEdit(tag))
                 marker.showInfoWindow()
                 true
             }
@@ -557,6 +607,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onContinueCurrentPolyline(
+        context: Context,
         googleMap: GoogleMap,
         polyline: Polyline
     ) {
@@ -567,8 +618,8 @@ class MapViewModel @Inject constructor(
                 val line = lineValue.data
                 val allMeasurements = measurementsValue.data + newMeasurements
                 polyline.points.clear()
+                onDeletePolylineMarkers(line.id)
                 polyline.color = line.color
-                polyline.setPolylinePattern(line.type)
                 polyline.points = line.vertices
                     .sortedBy { it.index }
                     .filter { vertex ->
@@ -581,11 +632,12 @@ class MapViewModel @Inject constructor(
                             .first { it.id == vertex.measurementId }
                         LatLng(measurement.latitude, measurement.longitude)
                     }
+                setPolylinePattern(context, googleMap, line.type, polyline, line.id)
             }
         }
     }
 
-    fun onCreateNewPolyline(googleMap: GoogleMap) {
+    fun onCreateNewPolyline(context: Context, googleMap: GoogleMap) {
         val measurementsValue = measurements.value
         val lineValue = currentLine
         googleMap.apply {
@@ -611,16 +663,17 @@ class MapViewModel @Inject constructor(
                             LatLng(measurement.latitude, measurement.longitude)
                         }.forEach { add(it) }
                 }
-                polyline.setPolylinePattern(line.type)
+                setPolylinePattern(context, googleMap, line.type, polyline, line.id)
                 polyline.tag = line.id
                 onSetCurrentPolyline(polyline)
+                polylines[line.id] = polyline
             }
         }
     }
 
     fun onCreateNewMarker(googleMap: GoogleMap, context: Context, newMeasurement: Measurement) {
         googleMap.apply {
-            addMarker {
+            val marker = addMarker {
                 position(LatLng(newMeasurement.latitude, newMeasurement.longitude))
                 title(newMeasurement.number.toString())
                 icon(bitmapDescriptorFromVector(
@@ -629,7 +682,9 @@ class MapViewModel @Inject constructor(
                     Color.BLACK
                 ))
                 anchor(newMeasurement.type.anchorX, newMeasurement.type.anchorY)
-            }.tag = newMeasurement.id
+            }
+            marker.tag = newMeasurement.id
+            markers.add(marker)
             onResetNewMeasurement()
         }
     }
@@ -656,7 +711,7 @@ class MapViewModel @Inject constructor(
         val measurementsValue = measurements.value
         googleMap.apply {
             if (measurementsValue is Resource.Success) {
-                val measurementsData = measurementsValue.data
+                val measurementsData = measurementsValue.data + newMeasurements
                 val bounds = LatLngBounds.builder()
                 measurementsData.forEach {
                         bounds.include(LatLng(it.latitude, it.longitude))
@@ -667,6 +722,121 @@ class MapViewModel @Inject constructor(
                     }
             }
             onSetBoundsComplete()
+        }
+    }
+
+    fun drawAll(
+        context: Context,
+        googleMap: GoogleMap,
+        measurements: List<Measurement>,
+        lines: List<Line>,
+    ) {
+        measurements.forEach { measurement ->
+            val marker = googleMap.addMarker {
+                position(LatLng(measurement.latitude, measurement.longitude))
+                title(measurement.number.toString())
+                icon(bitmapDescriptorFromVector(
+                    context,
+                    measurement.type.vectorResId,
+                    Color.BLACK
+                ))
+                anchor(measurement.type.anchorX, measurement.type.anchorY)
+            }
+            marker.tag = measurement.id
+            markers.add(marker)
+        }
+
+        lines.forEach { line ->
+            val polyline = googleMap.addPolyline {
+                clickable(true)
+                color(line.color)
+                width(5f)
+
+                line.vertices
+                    .sortedBy { it.index }
+                    .filter { vertex -> measurements.any {
+                        it.id == vertex.measurementId}
+                    }
+                    .map { vertex ->
+                        val measurement = measurements
+                            .first { it.id == vertex.measurementId }
+                        LatLng(measurement.latitude, measurement.longitude)
+                    }.forEach { add(it) }
+            }
+
+            polyline.tag = line.id
+            setPolylinePattern(context, googleMap, line.type, polyline, line.id)
+            polylines[line.id] = polyline
+        }
+    }
+
+    private fun setPolylinePattern(
+        context: Context,
+        googleMap: GoogleMap,
+        type: LineType,
+        polyline: Polyline,
+        id: String,
+    ) {
+        polyline.apply {
+            zIndex = 2.0f
+            pattern = when (type) {
+                LineType.Continuous -> null
+                LineType.Dashed -> listOf(Dash(PatternDash), Gap(PatternGap))
+                LineType.Dotted -> listOf(Dot(), Gap(PatternGap))
+                LineType.DashDotted ->  listOf(Dash(PatternDash), Gap(PatternGap), Dot(), Gap(PatternGap)
+                )
+                else -> {
+                    addPolylineMarkers(context, googleMap, polyline, id, type)
+                    null
+                }
+            }
+        }
+    }
+
+    private fun addPolylineMarkers(
+        context: Context,
+        googleMap: GoogleMap,
+        polyline: Polyline,
+        id: String,
+        type: LineType
+    ) {
+        var remainder = 0.0
+        polyline.points.zipWithNext { start, end ->
+            val markerTag = PolylineTagPrefix + id
+            val startPoint = start.toPoint()
+            val endPoint = end.toPoint()
+            val length = startPoint.distanceTo(endPoint) + remainder
+            for (distance in PolylineStep..length.toInt() step PolylineStep) {
+                val markerPosition = pointOnLineCoordinate(
+                    startPoint,
+                    endPoint,
+                    distance.toDouble() - remainder
+                )
+                val marker = googleMap.addMarker {
+                    position(markerPosition.toLatLng())
+                    icon(bitmapDescriptorFromVector(
+                        context,
+                        type.patternVectorResId,
+                        polyline.color
+                    ))
+                    anchor(type.anchorX, type.anchorY)
+                    rotation(startPoint.polylineAngleTo(endPoint).toFloat())
+                }
+                marker.tag = markerTag
+                markers.add(marker)
+            }
+            val stepLength = (length / PolylineStep).toInt() * PolylineStep
+            remainder = length - stepLength
+        }
+    }
+
+    fun onDeletePolylineMarkers(id: String) {
+        val markerId = PolylineTagPrefix + id
+        markers.filter { marker ->
+            marker.tag!!.toString() == markerId
+        }.forEach {
+            it.remove()
+            markers.remove(it)
         }
     }
 }
