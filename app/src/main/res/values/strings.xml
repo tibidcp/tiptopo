@@ -50,4 +50,19 @@
     <string name="wall">Wall</string>
     <string name="big_stone_fence">Big stone fence</string>
     <string name="grid">Grid</string>
+    <string name="asphalt">Asphalt</string>
+    <string name="tile">Tile</string>
+    <string name="hatchway_tsod">Hatchway tsod</string>
+    <string name="hatchway_k">Hatchway K</string>
+    <string name="hatchway_kover">Hatchway Kover</string>
+    <string name="hatchway_d">Hatchway D</string>
+    <string name="hatchway_v">Hatchway V</string>
+    <string name="hatchway_ts">Hatchway TS</string>
+    <string name="hatchway_gk">Hatchway GK</string>
+    <string name="hatchway_gts">Hatchway GTS</string>
+    <string name="hatchway_mg">Hatchway MG</string>
+    <string name="hatchway_vd">Hatchway VD</string>
+    <string name="hatchway_gv">Hatchway GV</string>
+    <string name="hatchway_me">Hatchway ME</string>
+    <string name="lawn">Lawn</string>
 </resources>

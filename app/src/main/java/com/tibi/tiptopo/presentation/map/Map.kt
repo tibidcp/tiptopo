@@ -451,6 +451,7 @@ private fun MapViewContainer(
                 setOnMapLongClickListener {
                     mapViewModel.addMeasurement(
                         Measurement(
+                            isMeasured = false,
                             latitude = it.latitude,
                             longitude = it.longitude,
                             type = mapViewModel.currentPointObject,
@@ -470,6 +471,7 @@ private fun MapViewContainer(
                     if (measurements is Resource.Success && lines is Resource.Success) {
                         mapViewModel.drawAll(context, googleMap, measurements.data, lines.data)
                         mapViewModel.onRefreshAllComplete()
+                        mapViewModel.onSetBounds(googleMap)
                     }
                 }
             }
