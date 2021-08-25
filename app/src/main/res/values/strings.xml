@@ -65,4 +65,6 @@
     <string name="hatchway_gv">Hatchway GV</string>
     <string name="hatchway_me">Hatchway ME</string>
     <string name="lawn">Lawn</string>
+    <string name="add_note">Add note</string>
+    <string name="message">Message</string>
 </resources>

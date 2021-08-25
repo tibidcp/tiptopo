@@ -22,7 +22,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.Polyline
-import com.google.maps.android.geometry.Point
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.squareup.moshi.*
@@ -75,6 +74,9 @@ class MapViewModel @Inject constructor(
     private val polylines = mutableMapOf<String, Polyline>()
 
     private val markers = mutableListOf<Marker>()
+
+    var currentNote: String? by mutableStateOf(null)
+        private set
 
     var mapState by mutableStateOf<MapState>(MapState.Main)
         private set
@@ -162,6 +164,38 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    fun onFetchCurrentNote() {
+        viewModelScope.launch {
+            val state = mapState
+            if (state is MapState.MeasurementEdit) {
+                val id = state.id
+                val measurement = measurementRepository.getMeasurement(id)
+                if (measurement is Resource.Success) {
+                    currentNote = measurement.data.note
+                }
+            }
+        }
+    }
+
+    fun onResetCurrentNote() {
+        currentNote = null
+    }
+
+    fun onAddMeasurementNote(note: String) {
+        viewModelScope.launch {
+            val state = mapState
+            if (state is MapState.MeasurementEdit) {
+                val id = state.id
+                val measurement = measurementRepository.getMeasurement(id)
+                if (measurement is Resource.Success) {
+                    measurement.data.note = note
+                    measurementRepository.updateMeasurement(measurement.data)
+                }
+            }
+        }
+        onResetCurrentNote()
+    }
+
     fun onUpdateNewMeasurementsList(measurement: Measurement) {
         newMeasurements.add(measurement)
     }
@@ -217,6 +251,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onResetCurrentMarker() {
+        onResetCurrentNote()
         currentMarker = null
     }
 
@@ -599,6 +634,7 @@ class MapViewModel @Inject constructor(
                     return@setOnMarkerClickListener true
                 }
                 onSetCurrentMarker(marker)
+                onResetCurrentNote()
                 onSetMapState(MapState.MeasurementEdit(tag))
                 marker.showInfoWindow()
                 true

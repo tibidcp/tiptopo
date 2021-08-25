@@ -25,14 +25,7 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoFixOff
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CompareArrows
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.SendToMobile
-import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -41,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -60,6 +54,7 @@ import com.tibi.tiptopo.domain.Project
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.toast
+import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
 
@@ -73,6 +68,7 @@ val colorList = listOf(
     Color.YELLOW
 )
 
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @Composable
@@ -112,6 +108,7 @@ fun ShowToast(mapViewModel: MapViewModel) {
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @Composable
@@ -127,6 +124,7 @@ fun MapScreen(
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
 @Composable
@@ -158,11 +156,19 @@ fun TopBarMeasurement(mapViewModel: MapViewModel) {
         title = { Text(text = stringResource(R.string.edit_point)) },
         actions = {
             IconButton(onClick = {
+                mapViewModel.onFetchCurrentNote()
+            }) {
+                Icon(
+                    Icons.Default.Message,
+                    stringResource(R.string.add_note)
+                )
+            }
+            IconButton(onClick = {
                 mapViewModel.onUpdateSelectedMeasurementType()
             }) {
                 Icon(
                     Icons.Default.Update,
-                    "Update measurement type"
+                    stringResource(R.string.update_measurement_type)
                 )
             }
             IconButton(onClick = {
@@ -284,6 +290,7 @@ fun StationButton(onSetStation: () -> Unit, text: String) {
     }
 }
 
+@ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
 @Composable
@@ -315,24 +322,36 @@ fun DeviceList(mapViewModel: MapViewModel) {
     }
 }
 
+@ExperimentalComposeUiApi
 @Composable
 fun TopButtonsRow(
     mapViewModel: MapViewModel,
     station: Station,
     onSetStation: () -> Unit
 ) {
-    Row {
-        StationButton(onSetStation = { onSetStation() }, text = station.name)
-
-        Button(onClick = { mapViewModel.onSetBoundsStart() }, Modifier.padding(8.dp)) {
-            Icon(Icons.Default.Fullscreen, stringResource(R.string.set_map_bounds))
+    val currentNote = mapViewModel.currentNote
+    Column {
+        if (currentNote != null) {
+            ItemEntryInput(
+                stringResource(R.string.message),
+                currentNote,
+                mapViewModel::onAddMeasurementNote
+            )
         }
 
-        Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
-            Icon(
-                Icons.Default.Bluetooth,
-                stringResource(R.string.bluetooth_button_description)
-            )
+        Row {
+            StationButton(onSetStation = { onSetStation() }, text = station.name)
+
+            Button(onClick = { mapViewModel.onSetBoundsStart() }, Modifier.padding(8.dp)) {
+                Icon(Icons.Default.Fullscreen, stringResource(R.string.set_map_bounds))
+            }
+
+            Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
+                Icon(
+                    Icons.Default.Bluetooth,
+                    stringResource(R.string.bluetooth_button_description)
+                )
+            }
         }
     }
 }
