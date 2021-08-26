@@ -463,6 +463,20 @@ private fun MapViewContainer(
                 //Add new marker
                 if (newMeasurement != null) {
                     mapViewModel.onCreateNewMarker(googleMap, context, newMeasurement)
+                    if (mapState is MapState.LineEdit && newMeasurement.type == PointType.Point) {
+                        when (currentLine) {
+                            is Resource.Success -> {
+                                //Continue line
+                                mapViewModel.continueLine(currentLine.data, newMeasurement.id)
+                            }
+                            is Resource.Loading -> {
+                                //New line
+                                mapViewModel.createNewLine(newMeasurement.id)
+                            }
+                            is Resource.Failure -> {  }
+                        }
+                    }
+                    mapViewModel.onResetNewMeasurement()
                     mapViewModel.onUpdateNewMeasurementsList(newMeasurement)
                 }
 

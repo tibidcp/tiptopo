@@ -234,7 +234,7 @@ class MapViewModel @Inject constructor(
         newMeasurement = measurement
     }
 
-    private fun onResetNewMeasurement() {
+    fun onResetNewMeasurement() {
         newMeasurement = null
     }
 
@@ -589,18 +589,22 @@ class MapViewModel @Inject constructor(
                     }
                     return@setOnMarkerClickListener true
                 }
-                val lastVertex = line.vertices.maxByOrNull { it.index }
-                if (lastVertex != null &&
-                    lastVertex.measurementId != marker.tag!!.toString()) {
-                    val vertices = line.vertices + listOf(Vertex(
-                        measurementId = tag,
-                        index = lastVertex.index + 1
-                    ))
-                    line.vertices = vertices
-                    updateLine(line)
-                }
+                continueLine(line, tag)
                 true
             }
+        }
+    }
+
+    fun continueLine(line: Line, tag: String) {
+        val lastVertex = line.vertices.maxByOrNull { it.index }
+        if (lastVertex != null &&
+            lastVertex.measurementId != tag) {
+            val vertices = line.vertices + listOf(Vertex(
+                measurementId = tag,
+                index = lastVertex.index + 1
+            ))
+            line.vertices = vertices
+            updateLine(line)
         }
     }
 
@@ -615,21 +619,25 @@ class MapViewModel @Inject constructor(
                         onSetCurrentLine(id)
                         onSetMapState(MapState.LineEdit)
                     }
+                    createNewLine(tag)
                     return@setOnMarkerClickListener true
                 }
-                val line = Line(
-                    vertices = listOf(
-                        Vertex(
-                            measurementId = tag,
-                            index = 0
-                        )
-                    ),
-                    type = currentLineType ?: LineType.Continuous
-                )
-                addLine(line)
                 true
             }
         }
+    }
+
+    fun createNewLine(tag: String) {
+        val line = Line(
+            vertices = listOf(
+                Vertex(
+                    measurementId = tag,
+                    index = 0
+                )
+            ),
+            type = currentLineType ?: LineType.Continuous
+        )
+        addLine(line)
     }
 
     fun setOnDefaultMarkerClickListener(googleMap: GoogleMap) {
@@ -733,7 +741,6 @@ class MapViewModel @Inject constructor(
             }
             marker.tag = newMeasurement.id
             markers.add(marker)
-            onResetNewMeasurement()
         }
     }
 
