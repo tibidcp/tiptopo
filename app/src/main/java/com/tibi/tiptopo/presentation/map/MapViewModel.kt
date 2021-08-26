@@ -475,12 +475,24 @@ class MapViewModel @Inject constructor(
         }
     }
 
+    fun getNewNumber(): Int {
+        return if (newMeasurements.isNotEmpty()) {
+            newMeasurements.last().number + 1
+        } else {
+            val allMeasurementsValue = measurements.value
+            if (allMeasurementsValue is Resource.Success) {
+                val maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
+                maxNumber + 1
+            } else {
+                1
+            }
+        }
+    }
+
     private fun autoAddMeasurement(message: String) {
         val parser = NikonRawParser(message)
         val stationsValue = stations.value
-        val allMeasurementsValue = measurements.value
-        if (stationsValue is Resource.Success && allMeasurementsValue is Resource.Success) {
-            val maxNumber = allMeasurementsValue.data.maxByOrNull { it.number }?.number ?: 0
+        if (stationsValue is Resource.Success) {
             val station = stationsValue.data.sortedByDescending { it.date }.first()
             val va = parser.parseVA()
             val ha = parser.parseHA()
@@ -491,7 +503,7 @@ class MapViewModel @Inject constructor(
                 Measurement(
                     stationId = station.id,
                     type = currentPointObject,
-                    number = maxNumber + 1,
+                    number = getNewNumber(),
                     rawString = message,
                     va = va,
                     ha = ha,

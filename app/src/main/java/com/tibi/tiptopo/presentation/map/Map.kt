@@ -468,16 +468,23 @@ private fun MapViewContainer(
 
                 //Add new measurement with long click on map
                 setOnMapLongClickListener {
-                    mapViewModel.addMeasurement(
-                        Measurement(
-                            isMeasured = false,
-                            latitude = it.latitude,
-                            longitude = it.longitude,
-                            type = mapViewModel.currentPointObject,
-                            name = it.toString()
-                        ),
-                        station.id
-                    )
+                    if (measurements is Resource.Success) {
+                        val maxNumber = measurements.data.maxByOrNull {
+                                measurement -> measurement.number
+                        }?.number ?: 0
+                        mapViewModel.addMeasurement(
+                            Measurement(
+                                stationId = station.id,
+                                isMeasured = false,
+                                number = mapViewModel.getNewNumber(),
+                                latitude = it.latitude,
+                                longitude = it.longitude,
+                                type = mapViewModel.currentPointObject,
+                                name = it.toString()
+                            ),
+                            station.id
+                        )
+                    }
                 }
 
                 //Set Bounds
