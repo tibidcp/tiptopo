@@ -41,18 +41,16 @@ fun Stations(
 
     when (authState) {
         FirebaseUserLiveData.AuthenticationState.AUTHENTICATED -> {
-            StationsScreen(stationsViewModel)
+            when (stationsViewModel.addedStation) {
+                is Resource.Failure -> { LocalContext.current.toast(stringResource(R.string.error)) }
+                is Resource.Loading -> { StationsScreen(stationsViewModel) }
+                is Resource.Success -> {
+                    stationsViewModel.onStationAdded()
+                    upPress()
+                }
+            }
         }
         FirebaseUserLiveData.AuthenticationState.UNAUTHENTICATED -> onLogOut()
-    }
-
-    when (stationsViewModel.addedStation) {
-        is Resource.Failure -> { LocalContext.current.toast(stringResource(R.string.error)) }
-        is Resource.Loading -> { StationsScreen(stationsViewModel) }
-        is Resource.Success -> {
-            stationsViewModel.onStationAdded()
-            upPress()
-        }
     }
 }
 
