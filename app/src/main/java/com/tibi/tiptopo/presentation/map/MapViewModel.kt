@@ -239,6 +239,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onSetCurrentPolyline(polyline: Polyline) {
+        onResetCurrentPointObject()
         currentPolyline = polyline
     }
 
@@ -323,7 +324,7 @@ class MapViewModel @Inject constructor(
         currentLineType = lineType
     }
 
-    private fun onResetCurrentLineType() {
+    fun onResetCurrentLineType() {
         currentLineType = null
     }
 
@@ -402,6 +403,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onResetCurrentLine() {
+        onResetCurrentLineType()
         currentLine = Resource.Loading()
     }
 
@@ -622,6 +624,7 @@ class MapViewModel @Inject constructor(
                     createNewLine(tag)
                     return@setOnMarkerClickListener true
                 }
+                createNewLine(tag)
                 true
             }
         }

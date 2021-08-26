@@ -7,13 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.GridCells
 import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
@@ -65,7 +59,8 @@ val colorList = listOf(
     Color.GREEN,
     Color.MAGENTA,
     Color.RED,
-    Color.YELLOW
+    Color.YELLOW,
+    Color.GRAY
 )
 
 @ExperimentalComposeUiApi
@@ -523,129 +518,120 @@ private fun MapViewContainer(
 @ExperimentalAnimationApi
 @Composable
 fun DrawingTools(mapViewModel: MapViewModel) {
+
+    val lines = remember { LineType.values() }
+    var showLines by remember { mutableStateOf(false) }
+    val currentLineType = mapViewModel.currentLineType
+    var showPointObjects by remember { mutableStateOf(false) }
+    val pointObjects = remember { PointType.values() }
+    var showColors by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(),
-        horizontalAlignment = Alignment.Start,
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
-        LineDrawing(mapViewModel)
-        ColorPicker(mapViewModel)
-        PointDrawing(mapViewModel)
-    }
-}
-
-
-@ExperimentalFoundationApi
-@ExperimentalAnimationApi
-@Composable
-fun LineDrawing(mapViewModel: MapViewModel) {
-    var showLines by remember { mutableStateOf(false) }
-    val lines = remember { LineType.values() }
-    val currentLineType = mapViewModel.currentLineType
-
-    AnimatedVisibility(visible = showLines) {
-        LazyVerticalGrid(cells = GridCells.Fixed(6)) {
-            items(lines) { line ->
-                FloatingActionButton(
-                    onClick = {
-                        mapViewModel.onResetCurrentPointObject()
-                        mapViewModel.onSetCurrentLineType(line)
-                        mapViewModel.onSetMapState(MapState.LineEdit)
-                        showLines = false
-                    },
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(line.lineVectorResId),
-                        contentDescription = stringResource(line.lineContentDescription)
-                    )
+        AnimatedVisibility(visible = showColors) {
+            LazyVerticalGrid(cells = GridCells.Fixed(4)) {
+                items(colorList.reversed()) { color ->
+                    FloatingActionButton(
+                        onClick = {
+                            mapViewModel.onSetCurrentColor(color)
+                            showColors = false
+                        },
+                        modifier = Modifier.padding(4.dp),
+                        backgroundColor = androidx.compose.ui.graphics.Color(color)
+                    ) {
+                    }
                 }
             }
         }
-    }
+        AnimatedVisibility(visible = showLines) {
+            LazyVerticalGrid(cells = GridCells.Fixed(4), Modifier.padding(4.dp)) {
+                items(lines.reversed()) { line ->
+                    FloatingActionButton(
+                        onClick = {
+                            mapViewModel.onResetCurrentPointObject()
+                            mapViewModel.onSetCurrentLineType(line)
+                            mapViewModel.onSetMapState(MapState.LineEdit)
+                            showLines = false
+                        },
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(line.lineVectorResId),
+                            contentDescription = stringResource(line.lineContentDescription)
+                        )
+                    }
+                }
+            }
+        }
+        AnimatedVisibility(visible = showPointObjects) {
+            LazyVerticalGrid(cells = GridCells.Fixed(6)) {
+                items(pointObjects.reversed()) { pointObject ->
+                    FloatingActionButton(
+                        onClick = {
+                            mapViewModel.onSetCurrentPointObject(pointObject)
+                            showPointObjects = false
+                        },
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(pointObject.vectorResId),
+                            contentDescription = stringResource(pointObject.contentDescription)
+                        )
+                    }
+                }
+            }
+        }
+        Row(Modifier.padding(16.dp)) {
+            FloatingActionButton(
+                onClick = {
+                    showLines = false
+                    showPointObjects = false
+                    showColors = !showColors
+                },
+                backgroundColor = androidx.compose.ui.graphics.Color(mapViewModel.currentColor),
+                modifier = Modifier.padding(8.dp)
+            ) {
+            }
 
-    FloatingActionButton(
-        onClick = { showLines = !showLines },
-        modifier = Modifier.padding(8.dp)
-    ) {
-        if (currentLineType == null) {
-            Text(text = "Line")
-        } else {
-            Icon(
-                painter = painterResource(id = currentLineType.lineVectorResId),
-                contentDescription = stringResource(
-                    id = currentLineType.lineContentDescription
+            FloatingActionButton(
+                onClick = {
+                    showColors = false
+                    showPointObjects = false
+                    showLines = !showLines
+                          },
+                modifier = Modifier.padding(8.dp)
+            ) {
+                if (currentLineType == null) {
+                    Text(text = "Line")
+                } else {
+                    Icon(
+                        painter = painterResource(id = currentLineType.lineVectorResId),
+                        contentDescription = stringResource(
+                            id = currentLineType.lineContentDescription
+                        )
+                    )
+                }
+            }
+            FloatingActionButton(
+                onClick = {
+                    showLines = false
+                    showColors = false
+                    showPointObjects = !showPointObjects
+                },
+                Modifier.padding(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = mapViewModel.currentPointObject.vectorResId),
+                    contentDescription = stringResource(
+                        id = mapViewModel.currentPointObject.contentDescription
+                    )
                 )
-            )
-        }
-    }
-}
-
-@ExperimentalFoundationApi
-@ExperimentalAnimationApi
-@Composable
-fun PointDrawing(mapViewModel: MapViewModel) {
-    var showPointObjects by remember { mutableStateOf(false) }
-    val pointObjects = remember { PointType.values() }
-    AnimatedVisibility(visible = showPointObjects) {
-        LazyVerticalGrid(cells = GridCells.Fixed(6)) {
-            items(pointObjects) { pointObject ->
-                FloatingActionButton(
-                    onClick = {
-                        mapViewModel.onSetCurrentPointObject(pointObject)
-                        showPointObjects = false
-                    },
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(pointObject.vectorResId),
-                        contentDescription = stringResource(pointObject.contentDescription)
-                    )
-                }
             }
         }
-    }
-    FloatingActionButton(
-        onClick = { showPointObjects = !showPointObjects },
-        Modifier.padding(8.dp)
-    ) {
-        Icon(
-            painter = painterResource(id = mapViewModel.currentPointObject.vectorResId),
-            contentDescription = stringResource(
-                id = mapViewModel.currentPointObject.contentDescription
-            )
-        )
-    }
-}
-
-@ExperimentalAnimationApi
-@ExperimentalFoundationApi
-@Composable
-fun ColorPicker(mapViewModel: MapViewModel) {
-    var showColors by remember { mutableStateOf(false) }
-
-    AnimatedVisibility(visible = showColors) {
-        LazyVerticalGrid(cells = GridCells.Fixed(6)) {
-            items(colorList) { color ->
-                FloatingActionButton(
-                    onClick = {
-                        mapViewModel.onSetCurrentColor(color)
-                        showColors = false
-                    },
-                    modifier = Modifier.padding(4.dp),
-                    backgroundColor = androidx.compose.ui.graphics.Color(color)
-                ) {
-                }
-            }
-        }
-    }
-
-    FloatingActionButton(
-        onClick = { showColors = !showColors },
-        backgroundColor = androidx.compose.ui.graphics.Color(mapViewModel.currentColor),
-        modifier = Modifier.padding(8.dp)
-    ) {
     }
 }

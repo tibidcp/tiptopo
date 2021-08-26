@@ -59,5 +59,6 @@ enum class PointType(
     HatchwayVd(R.drawable.ic_hatchway_vd, R.string.hatchway_vd, 0.5f, 0.5f),
     HatchwayGv(R.drawable.ic_hatchway_gv, R.string.hatchway_gv, 0.5f, 0.5f),
     HatchwayMe(R.drawable.ic_hatchway_me, R.string.hatchway_me, 0.5f, 0.5f),
-    HatchwayLawn(R.drawable.ic_lawn, R.string.lawn, 0.5f, 0.5f)
+    HatchwayLawn(R.drawable.ic_lawn, R.string.lawn, 0.5f, 0.5f),
+    Message(R.drawable.ic_outline_info_24, R.string.info, 0.5f, 0.5f)
 }
