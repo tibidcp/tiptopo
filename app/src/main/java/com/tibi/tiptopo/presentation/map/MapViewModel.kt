@@ -583,12 +583,6 @@ class MapViewModel @Inject constructor(
             setOnMarkerClickListener { marker ->
                 val tag = marker.tag!!.toString()
                 if (tag.startsWith(PolylineTagPrefix)) {
-                    val id = tag.substring(PolylineTagPrefix.length)
-                    polylines[id]?.let {
-                        onSetCurrentPolyline(it)
-                        onSetCurrentLine(id)
-                        onSetMapState(MapState.LineEdit)
-                    }
                     return@setOnMarkerClickListener true
                 }
                 continueLine(line, tag)
@@ -615,13 +609,6 @@ class MapViewModel @Inject constructor(
             setOnMarkerClickListener { marker ->
                 val tag = marker.tag!!.toString()
                 if (tag.startsWith(PolylineTagPrefix)) {
-                    val id = tag.substring(PolylineTagPrefix.length)
-                    polylines[id]?.let {
-                        onSetCurrentPolyline(it)
-                        onSetCurrentLine(id)
-                        onSetMapState(MapState.LineEdit)
-                    }
-                    createNewLine(tag)
                     return@setOnMarkerClickListener true
                 }
                 createNewLine(tag)

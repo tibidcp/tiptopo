@@ -418,9 +418,11 @@ private fun MapViewContainer(
 
                 //Polyline click listener
                 setOnPolylineClickListener { line ->
-                    mapViewModel.onSetCurrentPolyline(line)
-                    mapViewModel.onSetCurrentLine(line.tag!!.toString())
-                    mapViewModel.onSetMapState(MapState.LineEdit)
+                    if (mapState !is MapState.LineEdit) {
+                        mapViewModel.onSetCurrentPolyline(line)
+                        mapViewModel.onSetCurrentLine(line.tag!!.toString())
+                        mapViewModel.onSetMapState(MapState.LineEdit)
+                    }
                 }
 
                 if (currentPolyline != null) {
