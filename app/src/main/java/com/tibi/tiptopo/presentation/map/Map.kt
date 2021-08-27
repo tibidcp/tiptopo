@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -336,7 +337,7 @@ fun MapControls(mapViewModel: MapViewModel) {
                     )
             ) {
                 Icon(
-                    Icons.Default.ArrowDownward,
+                    Icons.Outlined.LocationOn,
                     stringResource(R.string.move_map_to_last_point),
                     Modifier.fillMaxSize(),
                     tint = androidx.compose.ui.graphics.Color.DarkGray
