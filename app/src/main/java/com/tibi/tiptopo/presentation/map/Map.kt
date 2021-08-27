@@ -7,17 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.GridCells
 import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Button
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
@@ -36,8 +32,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.akexorcist.bluetotohspp.library.DeviceList
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
+import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
@@ -51,6 +49,7 @@ import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
+
 
 val colorList = listOf(
     Color.BLACK,
@@ -299,7 +298,83 @@ fun MapBox(
     Box {
         MapViewContainer(map, mapViewModel, station)
         TopButtonsRow(mapViewModel, station, onSetStation)
-        DrawingTools(mapViewModel = mapViewModel)
+        MapControls(mapViewModel)
+        DrawingTools(mapViewModel)
+    }
+}
+
+@Composable
+fun MapControls(mapViewModel: MapViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Column(Modifier.padding(4.dp)) {
+            IconButton(onClick = { mapViewModel.onSetBoundsStart() }, Modifier
+                .padding(4.dp)
+                .background(
+                    color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f), CircleShape
+                )
+            ) {
+                Icon(
+                    Icons.Default.Fullscreen,
+                    stringResource(R.string.set_map_bounds),
+                    Modifier.fillMaxSize(),
+                    tint = androidx.compose.ui.graphics.Color.DarkGray
+                )
+            }
+
+            IconButton(onClick = { mapViewModel.onMoveMapToLastPointStart() },
+                Modifier
+                    .padding(4.dp)
+                    .background(
+                        color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    stringResource(R.string.move_map_to_last_point),
+                    Modifier.fillMaxSize(),
+                    tint = androidx.compose.ui.graphics.Color.DarkGray
+                )
+            }
+
+            IconButton(onClick = { mapViewModel.onZoomInStart() },
+                Modifier
+                    .padding(4.dp)
+                    .background(
+                        color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    "",
+                    Modifier.fillMaxSize(),
+                    tint = androidx.compose.ui.graphics.Color.DarkGray
+                )
+            }
+
+            IconButton(onClick = { mapViewModel.onZoomOutStart() },
+                Modifier
+                    .padding(4.dp)
+                    .background(
+                        color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Default.Remove,
+                    "",
+                    Modifier.fillMaxSize(),
+                    tint = androidx.compose.ui.graphics.Color.DarkGray
+                )
+            }
+        }
     }
 }
 
@@ -337,10 +412,6 @@ fun TopButtonsRow(
         Row {
             StationButton(onSetStation = { onSetStation() }, text = station.name)
 
-            Button(onClick = { mapViewModel.onSetBoundsStart() }, Modifier.padding(8.dp)) {
-                Icon(Icons.Default.Fullscreen, stringResource(R.string.set_map_bounds))
-            }
-
             Button(onClick = { mapViewModel.onConnectBluetooth() }, Modifier.padding(8.dp)) {
                 Icon(
                     Icons.Default.Bluetooth,
@@ -371,13 +442,15 @@ private fun MapViewContainer(
     val mapState = mapViewModel.mapState
     val currentPolyline = mapViewModel.currentPolyline
     val deletePolyline = mapViewModel.deleteCurrentPolyline
+    val moveMapToLastPoint = mapViewModel.moveMapToLastPoint
+    val zoomIn = mapViewModel.zoomIn
+    val zoomOut = mapViewModel.zoomOut
 
     AndroidView({ map }) { mapView ->
         coroutineScope.launch {
             val googleMap = mapView.awaitMap()
             googleMap.apply {
                 mapType = GoogleMap.MAP_TYPE_NONE
-                uiSettings.isZoomControlsEnabled = true
                 setPadding(0, 100, 0, 0)
 
                 if (mapState is MapState.LineEdit) {
@@ -503,12 +576,38 @@ private fun MapViewContainer(
                     mapViewModel.onSetBounds(googleMap)
                 }
 
+                //Move map to last point
+                if (moveMapToLastPoint) {
+                    mapViewModel.onMoveMapToLastPoint(googleMap)
+                }
+
+                //ZoomIn
+                if (zoomIn) {
+                    animateCamera(CameraUpdateFactory.zoomIn())
+                    mapViewModel.onZoomInComplete()
+                }
+
+                //ZoomOut
+                if (zoomOut) {
+                    animateCamera(CameraUpdateFactory.zoomOut())
+                    mapViewModel.onZoomOutComplete()
+                }
+
                 //Initial draw all objects on map
                 if (refreshAll) {
                     if (measurements is Resource.Success && lines is Resource.Success) {
+                        moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(
+                                    measurements.data.first().latitude,
+                                    measurements.data.first().longitude
+                                ),
+                                InitialZoom
+                            )
+                        )
                         mapViewModel.drawAll(context, googleMap, measurements.data, lines.data)
                         mapViewModel.onRefreshAllComplete()
-                        mapViewModel.onSetBounds(googleMap)
+//                        mapViewModel.onSetBounds(googleMap)
                     }
                 }
             }

@@ -55,6 +55,8 @@ const val PatternDash = 20f
 const val PatternGap = 10f
 const val PolylineTagPrefix = "P_"
 const val PolylineStep = 3
+const val InitialZoom = 14f
+const val ZoomRatio = 0.9f
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -96,6 +98,12 @@ class MapViewModel @Inject constructor(
     var updateCurrentMarker by mutableStateOf(false)
         private set
 
+    var zoomIn by mutableStateOf(false)
+        private set
+
+    var zoomOut by mutableStateOf(false)
+        private set
+
     var rawText by mutableStateOf("")
         private set
 
@@ -115,6 +123,9 @@ class MapViewModel @Inject constructor(
         private set
 
     var setBounds by mutableStateOf(false)
+        private set
+
+    var moveMapToLastPoint by mutableStateOf(false)
         private set
 
     var showDeviceList by mutableStateOf(false)
@@ -162,6 +173,22 @@ class MapViewModel @Inject constructor(
             emit(Resource.Loading())
             stationRepository.getAllStations().collect { emit(it) }
         }
+    }
+
+    fun onZoomInStart() {
+        zoomIn = true
+    }
+
+    fun onZoomInComplete() {
+        zoomIn = false
+    }
+
+    fun onZoomOutStart() {
+        zoomOut = true
+    }
+
+    fun onZoomOutComplete() {
+        zoomOut = false
     }
 
     fun onFetchCurrentNote() {
@@ -362,6 +389,14 @@ class MapViewModel @Inject constructor(
 
     private fun onSetBoundsComplete() {
         setBounds = false
+    }
+
+    fun onMoveMapToLastPointStart() {
+        moveMapToLastPoint = true
+    }
+
+    private fun onMoveMapToLastPointComplete() {
+        moveMapToLastPoint = false
     }
 
     private fun onUpdateCurrentMarker() {
@@ -883,6 +918,26 @@ class MapViewModel @Inject constructor(
             it.remove()
             markers.remove(it)
         }
+    }
+
+    fun onMoveMapToLastPoint(googleMap: GoogleMap) {
+        googleMap.apply {
+            if (newMeasurements.isNotEmpty()) {
+                val last = newMeasurements.last()
+                animateCamera(
+                    CameraUpdateFactory.newLatLng(LatLng(last.latitude, last.longitude))
+                )
+            } else {
+                val measurementsValue = measurements.value
+                if (measurementsValue is Resource.Success) {
+                    val last = measurementsValue.data.first()
+                    animateCamera(
+                        CameraUpdateFactory.newLatLng(LatLng(last.latitude, last.longitude))
+                    )
+                }
+            }
+        }
+        onMoveMapToLastPointComplete()
     }
 }
 
