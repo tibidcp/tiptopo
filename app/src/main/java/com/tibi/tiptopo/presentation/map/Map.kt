@@ -83,6 +83,7 @@ fun Map(
             when (currentProject) {
                 is Resource.Loading -> { ProgressCircular() }
                 is Resource.Success -> {
+                    mapViewModel.refresh()
                     ExportMapFiles(mapViewModel)
                     ShowToast(mapViewModel)
                     MapScreen(currentProject.data, onSetStation, mapViewModel)
@@ -435,7 +436,8 @@ private fun MapViewContainer(
     val lines = mapViewModel.lines.observeAsState(Resource.Loading()).value
     val setBounds = mapViewModel.setBounds
     val currentLine = mapViewModel.currentLine
-    val refreshAll = mapViewModel.refreshAll
+    val refreshAllMeasurements = mapViewModel.refreshAllMeasurements
+    val refreshAllLines = mapViewModel.refreshAllLines
     val currentMarker = mapViewModel.currentMarker
     val updateCurrentMarker = mapViewModel.updateCurrentMarker
     val deleteCurrentMarker = mapViewModel.deleteCurrentMarker
@@ -600,9 +602,9 @@ private fun MapViewContainer(
                     mapViewModel.onZoomOutComplete()
                 }
 
-                //Initial draw all objects on map
-                if (refreshAll) {
-                    if (measurements is Resource.Success && lines is Resource.Success) {
+                //Initial draw all measurements on map
+                if (refreshAllMeasurements) {
+                    if (measurements is Resource.Success) {
                         moveCamera(
                             CameraUpdateFactory.newLatLngZoom(
                                 LatLng(
@@ -612,9 +614,21 @@ private fun MapViewContainer(
                                 InitialZoom
                             )
                         )
-                        mapViewModel.drawAll(context, googleMap, measurements.data, lines.data)
-                        mapViewModel.onRefreshAllComplete()
-//                        mapViewModel.onSetBounds(googleMap)
+                        mapViewModel.drawAllMeasurements(context, googleMap, measurements.data)
+                        mapViewModel.onRefreshAllMeasurementsComplete()
+                    }
+                }
+
+                //Initial draw all lines on map
+                if (refreshAllLines) {
+                    if (measurements is Resource.Success && lines is Resource.Success) {
+                        mapViewModel.drawAllLines(
+                            context,
+                            googleMap,
+                            measurements.data,
+                            lines.data
+                        )
+                        mapViewModel.onRefreshAllLinesComplete()
                     }
                 }
             }

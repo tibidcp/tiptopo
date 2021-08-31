@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
-import android.graphics.ColorSpace
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
@@ -118,7 +117,10 @@ class MapViewModel @Inject constructor(
     var deleteCurrentPolyline by mutableStateOf(false)
         private set
 
-    var refreshAll by mutableStateOf(true)
+    var refreshAllMeasurements by mutableStateOf(true)
+        private set
+
+    var refreshAllLines by mutableStateOf(true)
         private set
 
     var setBounds by mutableStateOf(false)
@@ -435,8 +437,12 @@ class MapViewModel @Inject constructor(
         deleteCurrentMarker = false
     }
 
-    fun onRefreshAllComplete() {
-        refreshAll = false
+    fun onRefreshAllMeasurementsComplete() {
+        refreshAllMeasurements = false
+    }
+
+    fun onRefreshAllLinesComplete() {
+        refreshAllLines = false
     }
 
     fun onSetCurrentPointObject(pointObject: PointType) {
@@ -825,11 +831,10 @@ class MapViewModel @Inject constructor(
         }
     }
 
-    fun drawAll(
+    fun drawAllMeasurements(
         context: Context,
         googleMap: GoogleMap,
-        measurements: List<Measurement>,
-        lines: List<Line>,
+        measurements: List<Measurement>
     ) {
         measurements.forEach { measurement ->
             val marker = googleMap.addMarker {
@@ -845,6 +850,14 @@ class MapViewModel @Inject constructor(
             marker.tag = measurement.id
             markers.add(marker)
         }
+    }
+
+    fun drawAllLines(
+        context: Context,
+        googleMap: GoogleMap,
+        measurements: List<Measurement>,
+        lines: List<Line>
+    ) {
 
         lines.forEach { line ->
             val polyline = googleMap.addPolyline {

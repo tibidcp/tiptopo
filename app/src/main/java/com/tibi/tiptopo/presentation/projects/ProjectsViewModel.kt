@@ -2,10 +2,7 @@ package com.tibi.tiptopo.presentation.projects
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.liveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.tibi.tiptopo.MainDestinations.ProjectIdKey
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.project.ProjectRepository
@@ -24,24 +21,28 @@ class ProjectsViewModel @Inject constructor(
 
     @Inject lateinit var authenticationState: LiveData<FirebaseUserLiveData.AuthenticationState>
 
-    val projects = liveData<Resource<List<Project>>> {
-        emit(Resource.Loading())
-        try {
-            projectRepository.getAllProjects().collect {
-                emit(it)
-            }
-        } catch (e: Exception) {
-            emit(Resource.Failure(e))
+    private val refreshTrigger = MutableLiveData(Unit)
+
+    val projects = refreshTrigger.switchMap {
+        liveData {
+            emit(Resource.Loading())
+            projectRepository.getAllProjects().collect { emit(it) }
         }
     }
+
 
     fun addProject(name: String) {
         viewModelScope.launch {
             projectRepository.addProject(Project(name = name))
+            refresh()
         }
     }
 
     fun saveProjectId(projectId: String) {
         sharedPreferences.edit(commit = true) { putString(ProjectIdKey, projectId) }
+    }
+
+    private fun refresh() {
+        refreshTrigger.value = Unit
     }
 }
