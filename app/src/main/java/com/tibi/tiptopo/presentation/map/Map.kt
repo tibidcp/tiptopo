@@ -500,22 +500,24 @@ private fun MapViewContainer(
                     }
                 }
 
-                if (updatePolyline) {
-                    if (currentPolyline != null) {
+                if (currentPolyline != null) {
+                    if (updatePolyline) {
                         //Add new point to polyline
                         mapViewModel.onContinueCurrentPolyline(context, googleMap, currentPolyline)
-                        //Delete polyline
-                        if (deletePolyline) {
-                            mapViewModel.onDeletePolylineMarkers(currentPolyline.tag!!.toString())
-                            currentPolyline.remove()
-                            mapViewModel.onResetCurrentPolyline()
-                            mapViewModel.onDeleteCurrentPolylineComplete()
-                        }
-                    } else {
+                        mapViewModel.onUpdatePolylineComplete()
+                    }
+                    if (deletePolyline) {
+                        mapViewModel.onDeletePolylineMarkers(currentPolyline.tag!!.toString())
+                        mapViewModel.onResetCurrentPolyline()
+                        currentPolyline.remove()
+                        mapViewModel.onDeleteCurrentPolylineComplete()
+                    }
+                } else {
+                    if (updatePolyline) {
                         //Add new polyline
                         mapViewModel.onCreateNewPolyline(context, googleMap)
+                        mapViewModel.onUpdatePolylineComplete()
                     }
-                    mapViewModel.onUpdatePolylineComplete()
                 }
 
                 if (currentMarker != null) {

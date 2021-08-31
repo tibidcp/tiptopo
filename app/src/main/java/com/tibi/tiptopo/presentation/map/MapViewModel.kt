@@ -275,14 +275,14 @@ class MapViewModel @Inject constructor(
     fun onSetCurrentPolyline(polyline: Polyline) {
         onResetCurrentPointObject()
         currentPolyline = polyline
-        polyline.width = PolylineWidth * 2.4f
+        polyline.width = PolylineWidth * 2
         polyline.endCap = CustomCap(
             BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow),
-            PolylineWidth * 2.4f
+            PolylineWidth * 2
         )
         polyline.startCap = CustomCap(
             BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow_start),
-            PolylineWidth * 2.4f
+            PolylineWidth * 2
         )
     }
 
