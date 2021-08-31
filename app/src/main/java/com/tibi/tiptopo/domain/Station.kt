@@ -11,6 +11,7 @@ data class Station(
     var backsightHA: Double = 0.0,
     var backsightSD: Double = 0.0,
     var backsightDA: Double = 0.0,
+    var backsightRawString: String = "",
     var hi: Double = 0.0,
     var x: Double = 0.0,
     var y: Double = 0.0,

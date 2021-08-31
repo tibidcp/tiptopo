@@ -106,6 +106,7 @@ class StationsViewModel @Inject constructor(
             backsightVA = parser.parseVA(),
             backsightSD = parser.parseSD(),
             backsightDA = stationMeasurement.directAngTo(backsight),
+            backsightRawString = bluetoothMessage,
             x = stationPoint.x,
             y = stationPoint.y
             
