@@ -83,6 +83,8 @@ fun Map(
             when (currentProject) {
                 is Resource.Loading -> { ProgressCircular() }
                 is Resource.Success -> {
+                    mapViewModel.onRefreshAllMeasurements()
+                    mapViewModel.onRefreshAllLines()
                     mapViewModel.refresh()
                     ExportMapFiles(mapViewModel)
                     ShowToast(mapViewModel)

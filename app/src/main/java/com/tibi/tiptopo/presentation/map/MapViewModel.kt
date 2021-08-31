@@ -117,10 +117,10 @@ class MapViewModel @Inject constructor(
     var deleteCurrentPolyline by mutableStateOf(false)
         private set
 
-    var refreshAllMeasurements by mutableStateOf(true)
+    var refreshAllMeasurements by mutableStateOf(false)
         private set
 
-    var refreshAllLines by mutableStateOf(true)
+    var refreshAllLines by mutableStateOf(false)
         private set
 
     var setBounds by mutableStateOf(false)
@@ -435,6 +435,14 @@ class MapViewModel @Inject constructor(
 
     fun onDeleteCurrentMarkerComplete() {
         deleteCurrentMarker = false
+    }
+
+    fun onRefreshAllMeasurements() {
+        refreshAllMeasurements = true
+    }
+
+    fun onRefreshAllLines() {
+        refreshAllLines = true
     }
 
     fun onRefreshAllMeasurementsComplete() {
