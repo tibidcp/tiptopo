@@ -446,6 +446,7 @@ private fun MapViewContainer(
     val moveMapToLastPoint = mapViewModel.moveMapToLastPoint
     val zoomIn = mapViewModel.zoomIn
     val zoomOut = mapViewModel.zoomOut
+    val updatePolyline = mapViewModel.updatePolyline
 
     AndroidView({ map }) { mapView ->
         coroutineScope.launch {
@@ -478,8 +479,8 @@ private fun MapViewContainer(
                         //Reset current line with click on free space on map
                         MapState.LineEdit -> {
                             mapViewModel.onResetMapState()
-                            mapViewModel.onResetCurrentLine()
                             mapViewModel.onResetCurrentPolyline()
+                            mapViewModel.onResetCurrentLine()
                         }
                         //Reset current marker with click on free space on map
                         is MapState.MeasurementEdit -> {
@@ -499,19 +500,22 @@ private fun MapViewContainer(
                     }
                 }
 
-                if (currentPolyline != null) {
-                    //Add new point to polyline
-                    mapViewModel.onContinueCurrentPolyline(context, googleMap, currentPolyline)
-                    //Delete polyline
-                    if (deletePolyline) {
-                        mapViewModel.onDeletePolylineMarkers(currentPolyline.tag!!.toString())
-                        currentPolyline.remove()
-                        mapViewModel.onResetCurrentPolyline()
-                        mapViewModel.onDeleteCurrentPolylineComplete()
+                if (updatePolyline) {
+                    if (currentPolyline != null) {
+                        //Add new point to polyline
+                        mapViewModel.onContinueCurrentPolyline(context, googleMap, currentPolyline)
+                        //Delete polyline
+                        if (deletePolyline) {
+                            mapViewModel.onDeletePolylineMarkers(currentPolyline.tag!!.toString())
+                            currentPolyline.remove()
+                            mapViewModel.onResetCurrentPolyline()
+                            mapViewModel.onDeleteCurrentPolylineComplete()
+                        }
+                    } else {
+                        //Add new polyline
+                        mapViewModel.onCreateNewPolyline(context, googleMap)
                     }
-                } else {
-                    //Add new polyline
-                    mapViewModel.onCreateNewPolyline(context, googleMap)
+                    mapViewModel.onUpdatePolylineComplete()
                 }
 
                 if (currentMarker != null) {

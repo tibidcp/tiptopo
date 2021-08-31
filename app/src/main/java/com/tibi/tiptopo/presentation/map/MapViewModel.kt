@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
+import android.graphics.ColorSpace
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
@@ -15,17 +16,12 @@ import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListe
 import app.akexorcist.bluetotohspp.library.BluetoothState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.Dash
-import com.google.android.gms.maps.model.Dot
-import com.google.android.gms.maps.model.Gap
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.Polyline
+import com.google.android.gms.maps.model.*
 import com.google.maps.android.ktx.addMarker
 import com.google.maps.android.ktx.addPolyline
 import com.squareup.moshi.*
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.data.line.LineRepository
 import com.tibi.tiptopo.data.measurement.MeasurementRepository
@@ -55,8 +51,8 @@ const val PatternDash = 20f
 const val PatternGap = 10f
 const val PolylineTagPrefix = "P_"
 const val PolylineStep = 3
+const val PolylineWidth = 5f
 const val InitialZoom = 14f
-const val ZoomRatio = 0.9f
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -102,6 +98,9 @@ class MapViewModel @Inject constructor(
         private set
 
     var zoomOut by mutableStateOf(false)
+        private set
+
+    var updatePolyline by mutableStateOf(false)
         private set
 
     var rawText by mutableStateOf("")
@@ -173,6 +172,14 @@ class MapViewModel @Inject constructor(
             emit(Resource.Loading())
             stationRepository.getAllStations().collect { emit(it) }
         }
+    }
+
+    fun onUpdatePolyline() {
+        updatePolyline = true
+    }
+
+    fun onUpdatePolylineComplete() {
+        updatePolyline = false
     }
 
     fun onZoomInStart() {
@@ -268,9 +275,21 @@ class MapViewModel @Inject constructor(
     fun onSetCurrentPolyline(polyline: Polyline) {
         onResetCurrentPointObject()
         currentPolyline = polyline
+        polyline.width = PolylineWidth * 2.4f
+        polyline.endCap = CustomCap(
+            BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow),
+            PolylineWidth * 2.4f
+        )
+        polyline.startCap = CustomCap(
+            BitmapDescriptorFactory.fromResource(R.drawable.ic_arrow_start),
+            PolylineWidth * 2.4f
+        )
     }
 
     fun onResetCurrentPolyline() {
+        currentPolyline?.width = PolylineWidth
+        currentPolyline?.startCap = ButtCap()
+        currentPolyline?.endCap = ButtCap()
         currentPolyline = null
     }
 
@@ -370,14 +389,15 @@ class MapViewModel @Inject constructor(
     private fun addLine(line: Line) {
         line.color = currentColor
         currentLine = Resource.Success(line)
+        onUpdatePolyline()
         viewModelScope.launch {
             lineRepository.addLine(line)
         }
     }
 
     private fun updateLine(line: Line) {
-        currentLine = Resource.Loading()
         currentLine = Resource.Success(line)
+        onUpdatePolyline()
         viewModelScope.launch {
             lineRepository.updateLine(line)
         }
@@ -729,7 +749,7 @@ class MapViewModel @Inject constructor(
                 val polyline = addPolyline {
                     clickable(true)
                     color(line.color)
-                    width(5f)
+                    width(PolylineWidth)
 
                     line.vertices
                         .sortedBy { it.index }
@@ -830,7 +850,7 @@ class MapViewModel @Inject constructor(
             val polyline = googleMap.addPolyline {
                 clickable(true)
                 color(line.color)
-                width(5f)
+                width(PolylineWidth)
 
                 line.vertices
                     .sortedBy { it.index }
