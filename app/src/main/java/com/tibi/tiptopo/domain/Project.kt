@@ -8,10 +8,12 @@ data class Project(
     var name: String = "",
     @ServerTimestamp
     var date: Date? = null,
-    var totalStation: TotalStation = TotalStation.NikonNPL352
+    var totalStation: TotalStation = TotalStation.Nikon
 ) : FirestoreMembers
 
 enum class TotalStation {
-    NikonNPL352,
-    TrimbleM3
+    Nikon,
+    Trimble,
+    Leica,
+    Sokkia
 }

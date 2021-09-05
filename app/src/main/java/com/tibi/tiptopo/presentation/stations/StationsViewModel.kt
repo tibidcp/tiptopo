@@ -17,10 +17,13 @@ import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.PointType
 import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.TotalStation
+import com.tibi.tiptopo.presentation.di.CurrentTotalStation
 import com.tibi.tiptopo.presentation.directAngTo
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import com.tibi.tiptopo.presentation.toPoint
+import com.tibi.tiptopo.presentation.tsParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -30,6 +33,7 @@ import javax.inject.Inject
 class StationsViewModel @Inject constructor(
     private val stationRepository: StationRepository,
     private val measurementRepository: MeasurementRepository,
+    @CurrentTotalStation private val totalStation: TotalStation,
     private val sharedPreferences: SharedPreferences,
     private val bluetooth: BluetoothSPP
 ) : ViewModel() {
@@ -86,7 +90,7 @@ class StationsViewModel @Inject constructor(
     }
 
     fun addSelectedStation() {
-        val parser = NikonRawParser(bluetoothMessage)
+        val parser = bluetoothMessage.tsParser(totalStation)
         if (!parser.isValid()) {
             return
         }

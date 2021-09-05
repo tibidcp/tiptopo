@@ -27,18 +27,11 @@ import com.tibi.tiptopo.data.measurement.MeasurementRepository
 import com.tibi.tiptopo.data.project.ProjectRepository
 import com.tibi.tiptopo.data.station.StationRepository
 import com.tibi.tiptopo.domain.*
-import com.tibi.tiptopo.presentation.bitmapDescriptorFromVector
+import com.tibi.tiptopo.presentation.*
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
-import com.tibi.tiptopo.presentation.distanceTo
-import com.tibi.tiptopo.presentation.format
-import com.tibi.tiptopo.presentation.getCoordinate
+import com.tibi.tiptopo.presentation.di.CurrentTotalStation
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
 import com.tibi.tiptopo.presentation.parser.NikonRawParser
-import com.tibi.tiptopo.presentation.pointOnLineCoordinate
-import com.tibi.tiptopo.presentation.polylineAngleTo
-import com.tibi.tiptopo.presentation.toLatLng
-import com.tibi.tiptopo.presentation.toRawDegrees
-import com.tibi.tiptopo.presentation.toPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -61,6 +54,7 @@ class MapViewModel @Inject constructor(
     private val lineRepository: LineRepository,
     private val bluetooth: BluetoothSPP,
     @CurrentProjectId private val projectId: String,
+    @CurrentTotalStation private val totalStation: TotalStation,
     application: Application
 ) : AndroidViewModel(application) {
 
@@ -529,7 +523,7 @@ class MapViewModel @Inject constructor(
     fun setBluetoothDataAndConnectionListener() {
         bluetooth.setOnDataReceivedListener { data, message ->
             Log.i("BluetoothTest", "data: $data; message: $message")
-            val parser = NikonRawParser(message)
+            val parser = message.tsParser(totalStation)
             autoAddMeasurement(message)
             Log.i("BluetoothTest", "va: ${parser.parseVA()}; ha: ${parser.parseHA()}; sd: ${parser.parseSD()}")
         }
@@ -561,7 +555,7 @@ class MapViewModel @Inject constructor(
     }
 
     private fun autoAddMeasurement(message: String) {
-        val parser = NikonRawParser(message)
+        val parser = message.tsParser(totalStation)
         val stationsValue = stations.value
         if (stationsValue is Resource.Success) {
             val station = stationsValue.data.sortedByDescending { it.date }.first()

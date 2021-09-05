@@ -1,7 +1,12 @@
 package com.tibi.tiptopo.presentation.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -15,8 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tibi.tiptopo.R
+import com.tibi.tiptopo.domain.TotalStation
 
 @Composable
 fun ProgressCircular() {
@@ -31,9 +38,17 @@ fun ProgressCircular() {
     }
 }
 
+@ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
-fun ItemEntryInput(label: String, initText: String = "", onItemComplete: (String) -> Unit) {
+fun ItemEntryInput(
+    label: String,
+    initText: String = "",
+    showTS: Boolean,
+    selectedChip: TotalStation = TotalStation.Nikon,
+    onChipSelected: (TotalStation) -> Unit = {},
+    onItemComplete: (String) -> Unit
+) {
     val (text, setText) = remember { mutableStateOf(initText) }
     val submit = {
         if (text.isNotBlank()) {
@@ -41,20 +56,29 @@ fun ItemEntryInput(label: String, initText: String = "", onItemComplete: (String
         }
         setText("")
     }
-    Surface(color = MaterialTheme.colors.secondary) {
-        ItemInput(
-            text = text,
-            onTextChange = setText,
-            label = label,
-            submit = submit
-        ) {
-            TextButton(
-                onClick = submit,
-                shape = CircleShape,
-                enabled = text.isNotBlank()
+    Column {
+        Surface(color = MaterialTheme.colors.secondary) {
+            ItemInput(
+                text = text,
+                onTextChange = setText,
+                label = label,
+                submit = submit
             ) {
-                Text(stringResource(R.string.add))
+                TextButton(
+                    onClick = submit,
+                    shape = CircleShape,
+                    enabled = text.isNotBlank()
+                ) {
+                    Text(stringResource(R.string.add))
+                }
             }
+        }
+        AnimatedVisibility(visible = showTS && text.isNotBlank()) {
+            TotalStationChips(
+                selectedChip = selectedChip,
+                onChipSelected = onChipSelected,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -113,4 +137,70 @@ fun ItemInputText(
         modifier = modifier
     )
 }
+
+@Composable
+private fun TextChip(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = when {
+            selected -> MaterialTheme.colors.primary
+            else -> Color.Transparent
+        },
+        contentColor = when {
+            selected -> MaterialTheme.colors.onPrimary
+            else -> MaterialTheme.colors.onSecondary
+        },
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = when {
+                selected -> MaterialTheme.colors.primary
+                else -> MaterialTheme.colors.onSecondary
+            }
+        ),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.body2,
+            modifier = Modifier.padding(8.dp)
+        )
+    }
+}
+
+@Composable
+private fun TotalStationChips(
+    selectedChip: TotalStation,
+    onChipSelected: (TotalStation) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val totalStations = TotalStation.values()
+    val selectedIndex = totalStations.indexOfFirst { it == selectedChip }
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        divider = {}, /* Disable the built-in divider */
+        edgePadding = 24.dp,
+        indicator = emptyTabIndicator,
+        backgroundColor = MaterialTheme.colors.secondary,
+        modifier = modifier
+    ) {
+        totalStations.forEachIndexed { index, totalStation ->
+            Tab(
+                selected = index == selectedIndex,
+                onClick = { onChipSelected(totalStation) }
+            ) {
+                TextChip(
+                    text = totalStation.name,
+                    selected = index == selectedIndex,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+                )
+            }
+        }
+    }
+}
+
+private val emptyTabIndicator: @Composable (List<TabPosition>) -> Unit = {}
 

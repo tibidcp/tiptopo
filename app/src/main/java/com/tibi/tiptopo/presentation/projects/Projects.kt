@@ -1,5 +1,6 @@
 package com.tibi.tiptopo.presentation.projects
 
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,7 @@ import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import java.text.SimpleDateFormat
 import java.util.*
 
+@ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
 fun Projects(
@@ -49,6 +51,7 @@ fun Projects(
     }
 }
 
+@ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
 fun ProjectScreen(
@@ -56,6 +59,7 @@ fun ProjectScreen(
     onProjectSelected: () -> Unit
 ) {
     val projectItemsState = projectsViewModel.projects.observeAsState(Resource.Loading())
+    val selectedTS = projectsViewModel.selectedTS
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,6 +76,9 @@ fun ProjectScreen(
         Column {
             ItemEntryInput(
                 label = stringResource(R.string.project_name),
+                showTS = true,
+                selectedChip = selectedTS,
+                onChipSelected = projectsViewModel::onSelectTS,
                 onItemComplete = projectsViewModel::addProject
             )
             when (val projectItems = projectItemsState.value) {
@@ -81,7 +88,10 @@ fun ProjectScreen(
                             ProjectRow(
                                 project = project,
                                 {
-                                    projectsViewModel.saveProjectId(project.id)
+                                    projectsViewModel.saveSharedPrefData(
+                                        project.id,
+                                        project.totalStation
+                                    )
                                     onProjectSelected()
                                 },
                                 Modifier.fillParentMaxWidth()

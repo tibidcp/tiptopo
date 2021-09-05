@@ -396,6 +396,7 @@ fun DeviceList(mapViewModel: MapViewModel) {
     }
 }
 
+@ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
 fun TopButtonsRow(
@@ -407,9 +408,10 @@ fun TopButtonsRow(
     Column {
         if (currentNote != null) {
             ItemEntryInput(
-                stringResource(R.string.message),
-                currentNote,
-                mapViewModel::onAddMeasurementNote
+                label = stringResource(R.string.message),
+                initText = currentNote,
+                showTS = false,
+                onItemComplete = mapViewModel::onAddMeasurementNote
             )
         }
 

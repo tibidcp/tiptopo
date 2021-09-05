@@ -25,6 +25,7 @@ object MainDestinations {
     const val MapRoute = "map"
     const val StationsRoute = "stations"
     const val ProjectIdKey = "projectId"
+    const val TotalStationKey = "totalStation"
     const val StationIdKey = "stationId"
 }
 

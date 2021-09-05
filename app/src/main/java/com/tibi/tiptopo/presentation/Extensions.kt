@@ -4,17 +4,16 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.widget.Toast
-import androidx.annotation.FloatRange
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.geometry.Point
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.TotalStation
+import com.tibi.tiptopo.presentation.parser.*
 import org.osgeo.proj4j.BasicCoordinateTransform
 import org.osgeo.proj4j.CRSFactory
 import org.osgeo.proj4j.ProjCoordinate
@@ -26,6 +25,15 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 const val SCALE = 10.0
+
+fun String.tsParser(totalStation: TotalStation): IDataParser {
+    return when (totalStation) {
+        TotalStation.Nikon -> NikonRawParser(this)
+        TotalStation.Trimble -> TrimbleM5Parser(this)
+        TotalStation.Leica -> LeicaGsiParser(this)
+        TotalStation.Sokkia -> SokkiaParser(this)
+    }
+}
 
 fun Context.toast(message: CharSequence) =
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

@@ -30,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.tibi.tiptopo.MainDestinations.TotalStationKey
+import com.tibi.tiptopo.domain.TotalStation
 
 @InstallIn(ViewModelComponent::class)
 @Module
@@ -104,6 +106,20 @@ object ProjectIdModule {
 }
 
 @Module
+@InstallIn(ViewModelComponent::class)
+object TotalStationModule {
+    @Provides
+    @ViewModelScoped
+    @CurrentTotalStation
+    fun providesTotalStation(@ApplicationContext context: Context): TotalStation {
+        val totalStationString = context
+                .getSharedPreferences("com.tibi.tiptopo", Context.MODE_PRIVATE)
+                .getString(TotalStationKey, "") ?: ""
+        return TotalStation.valueOf(totalStationString)
+    }
+}
+
+@Module
 @InstallIn(SingletonComponent::class)
 object SharedPreferencesModule {
     @Singleton
@@ -120,6 +136,10 @@ annotation class IoDispatcher
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class CurrentProjectId
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class CurrentTotalStation
 
 @Module
 @InstallIn(SingletonComponent::class)
