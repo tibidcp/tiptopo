@@ -3,8 +3,12 @@ package com.tibi.tiptopo.presentation.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -38,6 +42,8 @@ fun ProgressCircular() {
     }
 }
 
+@ExperimentalFoundationApi
+@ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
@@ -138,10 +144,12 @@ fun ItemInputText(
     )
 }
 
+@ExperimentalMaterialApi
 @Composable
 private fun TextChip(
     text: String,
     selected: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -161,16 +169,19 @@ private fun TextChip(
                 else -> MaterialTheme.colors.onSecondary
             }
         ),
+        onClick = onClick,
         modifier = modifier
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.body2,
+            style = MaterialTheme.typography.button,
             modifier = Modifier.padding(8.dp)
         )
     }
 }
 
+@ExperimentalMaterialApi
+@ExperimentalFoundationApi
 @Composable
 private fun TotalStationChips(
     selectedChip: TotalStation,
@@ -178,29 +189,19 @@ private fun TotalStationChips(
     modifier: Modifier = Modifier
 ) {
     val totalStations = TotalStation.values()
-    val selectedIndex = totalStations.indexOfFirst { it == selectedChip }
-    ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
-        divider = {}, /* Disable the built-in divider */
-        edgePadding = 24.dp,
-        indicator = emptyTabIndicator,
-        backgroundColor = MaterialTheme.colors.secondary,
-        modifier = modifier
-    ) {
-        totalStations.forEachIndexed { index, totalStation ->
-            Tab(
-                selected = index == selectedIndex,
-                onClick = { onChipSelected(totalStation) }
-            ) {
+    Surface(color = MaterialTheme.colors.secondary) {
+        Row(
+            modifier = modifier.padding(4.dp)
+        ) {
+            totalStations.forEach { totalStation ->
                 TextChip(
                     text = totalStation.name,
-                    selected = index == selectedIndex,
+                    selected = totalStation == selectedChip,
+                    onClick = { onChipSelected(totalStation) },
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
                 )
             }
         }
     }
 }
-
-private val emptyTabIndicator: @Composable (List<TabPosition>) -> Unit = {}
 

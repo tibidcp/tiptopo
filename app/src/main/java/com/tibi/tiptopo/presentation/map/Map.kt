@@ -63,6 +63,7 @@ val colorList = listOf(
     Color.GRAY
 )
 
+@ExperimentalMaterialApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
@@ -106,6 +107,7 @@ fun ShowToast(mapViewModel: MapViewModel) {
     }
 }
 
+@ExperimentalMaterialApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalAnimationApi
@@ -122,6 +124,7 @@ fun MapScreen(
     }
 }
 
+@ExperimentalMaterialApi
 @ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
@@ -288,6 +291,7 @@ fun StationButton(onSetStation: () -> Unit, text: String) {
     }
 }
 
+@ExperimentalMaterialApi
 @ExperimentalComposeUiApi
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
@@ -396,6 +400,8 @@ fun DeviceList(mapViewModel: MapViewModel) {
     }
 }
 
+@ExperimentalMaterialApi
+@ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
