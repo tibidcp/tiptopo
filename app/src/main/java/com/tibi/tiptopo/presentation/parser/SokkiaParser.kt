@@ -1,19 +1,30 @@
 package com.tibi.tiptopo.presentation.parser
 
 class SokkiaParser(private val message: String): IDataParser {
+    private val strings = message.split(" ")
+
     override fun isValid(): Boolean {
-        return true
+        return message.length == 23
     }
 
     override fun parseSD(): Double {
-        return 0.0
+        val sd = strings[0].toInt()
+        return sd / 1000.0
     }
 
     override fun parseHA(): Double {
-        return 0.0
+        val ha = strings[1].toInt()
+        val sec = ha % 100
+        val min = ha / 100 % 100
+        val deg = ha / 10000
+        return deg + min / 60.0 + sec / 3600.0
     }
 
     override fun parseVA(): Double {
-        return 0.0
+        val va = strings[2].toInt()
+        val sec = va % 100
+        val min = va / 100 % 100
+        val deg = va / 10000
+        return deg + min / 60.0 + sec / 3600.0
     }
 }
