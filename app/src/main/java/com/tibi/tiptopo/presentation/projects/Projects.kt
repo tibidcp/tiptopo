@@ -1,6 +1,7 @@
 package com.tibi.tiptopo.presentation.projects
 
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,6 +29,8 @@ import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import java.text.SimpleDateFormat
 import java.util.*
 
+@ExperimentalFoundationApi
+@ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable
@@ -36,7 +39,6 @@ fun Projects(
     onProjectSelected: () -> Unit,
     onLogOut: () -> Unit
 ) {
-
     val authState: FirebaseUserLiveData.AuthenticationState by
     projectsViewModel.authenticationState.observeAsState(AUTHENTICATED)
 
@@ -51,6 +53,8 @@ fun Projects(
     }
 }
 
+@ExperimentalMaterialApi
+@ExperimentalFoundationApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @Composable

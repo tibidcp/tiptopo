@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.GridCells
@@ -14,14 +15,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -172,11 +177,23 @@ private fun TextChip(
         onClick = onClick,
         modifier = modifier
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.button,
-            modifier = Modifier.padding(8.dp)
-        )
+        Row(modifier = Modifier) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(top = 8.dp, start = 8.dp)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.button,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
     }
 }
 
@@ -191,7 +208,7 @@ private fun TotalStationChips(
     val totalStations = TotalStation.values()
     Surface(color = MaterialTheme.colors.secondary) {
         Row(
-            modifier = modifier.padding(4.dp)
+            modifier = modifier.padding(bottom = 16.dp)
         ) {
             totalStations.forEach { totalStation ->
                 TextChip(
