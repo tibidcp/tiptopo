@@ -19,10 +19,8 @@ import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.PointType
-import com.tibi.tiptopo.domain.Project
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
-import com.tibi.tiptopo.presentation.projects.ProjectRow
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import java.text.SimpleDateFormat
@@ -70,13 +68,15 @@ fun StationsScreen(
 
     when (stationsViewModel.stations.observeAsState(Resource.Loading()).value) {
         is Resource.Loading -> {
-            Button(
-                onClick = {
-                    stationsViewModel.addStation(Station(name = "S0"))
-                },
-                Modifier.padding(8.dp)
-            ) {
-                Text(text = stringResource(R.string.add_quick_station))
+            Column {
+                Button(
+                    onClick = {
+                        stationsViewModel.addStation(Station(name = "S0"))
+                    },
+                    Modifier.padding(8.dp)
+                ) {
+                    Text(text = stringResource(R.string.add_quick_station))
+                }
             }
         }
         is Resource.Failure -> {

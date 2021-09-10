@@ -13,7 +13,7 @@ class SokkiaParser(private val message: String): IDataParser {
     }
 
     override fun parseHA(): Double {
-        val ha = strings[1].toInt()
+        val ha = strings[2].toInt()
         val sec = ha % 100
         val min = ha / 100 % 100
         val deg = ha / 10000
@@ -21,10 +21,15 @@ class SokkiaParser(private val message: String): IDataParser {
     }
 
     override fun parseVA(): Double {
-        val va = strings[2].toInt()
+        val va = strings[1].toInt()
         val sec = va % 100
         val min = va / 100 % 100
         val deg = va / 10000
-        return deg + min / 60.0 + sec / 3600.0
+        val sokkiaVa = deg + min / 60.0 + sec / 3600.0
+        return if (sokkiaVa >= 90.0) {
+            sokkiaVa - 90.0
+        } else {
+            sokkiaVa + 270.0
+        }
     }
 }

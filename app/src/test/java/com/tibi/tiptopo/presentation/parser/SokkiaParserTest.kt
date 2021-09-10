@@ -30,13 +30,13 @@ class SokkiaParserTest {
     fun testHaParse() {
         val message = "0003860 0890446 2421636"
         val parser = SokkiaParser(message)
-        assertEquals(parser.parseHA().round(2), 89.08, 0.01)
+        assertEquals(parser.parseHA().round(2), 242.28, 0.01)
     }
 
     @Test
     fun testVaParse() {
         val message = "0003860 0890446 2421636"
         val parser = SokkiaParser(message)
-        assertEquals(parser.parseVA(), 242.28, 0.01)
+        assertEquals(parser.parseVA(), 359.08, 0.01)
     }
 }
