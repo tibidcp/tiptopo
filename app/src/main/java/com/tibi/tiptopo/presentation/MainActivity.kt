@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.ui.ExperimentalComposeUiApi
 import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import com.tibi.tiptopo.NavGraph
@@ -17,6 +18,7 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var bluetooth: BluetoothSPP
 
+    @ExperimentalMaterialApi
     @ExperimentalFoundationApi
     @ExperimentalAnimationApi
     @ExperimentalComposeUiApi

@@ -7,13 +7,13 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.tibi.tiptopo"
         minSdkVersion 23
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
@@ -95,7 +95,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:26.1.0')
     implementation 'com.firebaseui:firebase-ui-auth:7.1.1'
     implementation 'com.google.firebase:firebase-auth-ktx'
-    implementation 'com.google.firebase:firebase-firestore-ktx:23.0.3'
+    implementation 'com.google.firebase:firebase-firestore-ktx:23.0.4'
 
     //Hilt
     implementation "com.google.dagger:hilt-android:$hilt_version"
@@ -128,7 +128,7 @@ dependencies {
     implementation "com.google.android.material:compose-theme-adapter:$composeVersion"
     implementation "androidx.compose.material:material-icons-extended:$composeVersion"
     implementation "androidx.navigation:navigation-compose:2.4.0-alpha04"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha07"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0-rc01"
     implementation 'androidx.hilt:hilt-navigation-compose:1.0.0-alpha03'
 
 
