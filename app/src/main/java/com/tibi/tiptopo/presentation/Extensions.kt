@@ -13,6 +13,7 @@ import com.google.maps.android.geometry.Point
 import com.tibi.tiptopo.domain.Measurement
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.domain.TotalStation
+import com.tibi.tiptopo.presentation.di.CurrentTotalStation
 import com.tibi.tiptopo.presentation.parser.*
 import org.osgeo.proj4j.BasicCoordinateTransform
 import org.osgeo.proj4j.CRSFactory
@@ -156,6 +157,32 @@ fun Station.getCoordinate(ha: Double, va: Double, sd: Double): Point {
     val deltaY = d * sin(directAng.toRadians())
 
     return Point(station.x + deltaX, station.y + deltaY)
+}
+
+fun Station.setMeasurementRaw(
+    measurement: Measurement,
+    totalStation: TotalStation
+) {
+    val stationPoint = Point(x, y)
+    val measurementPoint = LatLng(measurement.latitude, measurement.longitude).toPoint()
+    val measurementDa = stationPoint.directAngTo(measurementPoint)
+    var beta = measurementDa - backsightDA
+    if (beta < 0.0) {
+        beta += 360.0
+    }
+    var measurementHa = backsightHA + beta
+    if (measurementHa >= 360.0) {
+        measurementHa -= 360.0
+    }
+    var measurementVa = 0.0
+    if (totalStation == TotalStation.Sokkia) {
+        measurementVa = 90.0
+    }
+    val measurementSd = stationPoint.distanceTo(measurementPoint)
+
+    measurement.va = measurementVa
+    measurement.ha = measurementHa
+    measurement.sd = measurementSd
 }
 
 fun Double.round(decimals: Int): Double {

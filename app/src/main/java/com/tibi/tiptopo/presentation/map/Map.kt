@@ -2,6 +2,7 @@ package com.tibi.tiptopo.presentation.map
 
 import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -46,6 +47,7 @@ import com.tibi.tiptopo.domain.PointType
 import com.tibi.tiptopo.domain.Project
 import com.tibi.tiptopo.domain.Station
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
+import com.tibi.tiptopo.presentation.toPoint
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
@@ -138,6 +140,23 @@ fun MapView(mapViewModel: MapViewModel, onSetStation: () -> Unit) {
         is Resource.Success -> {
             val currentStation = stations.data.sortedByDescending { it.date }.first()
             MapBox(mapView, mapViewModel, currentStation, onSetStation)
+
+
+
+            Log.d("AllStations",
+                LatLng(
+                    55.67707036019693,
+                    37.571533160264714
+                ).toPoint().toString()
+            )
+            stations.data.forEach {
+                Log.d("AllStations",
+                    it.toString()
+                )
+            }
+
+
+
         }
     }
 }
