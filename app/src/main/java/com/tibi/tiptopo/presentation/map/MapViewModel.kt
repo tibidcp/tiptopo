@@ -313,6 +313,13 @@ class MapViewModel @Inject constructor(
             && linesValue is Resource.Success) {
             val builderRaw = StringBuilder()
 
+            measurementsValue.data
+                .filter { !it.isMeasured }
+                .forEach { measurement ->
+                    val station = stationsValue.data.first { it.id == measurement.stationId }
+                    station.setMeasurementRaw(measurement, totalStation)
+                }
+
             stationsValue.data.sortedBy { it.date }.forEach { station ->
                 val backsight = measurementsValue.data.firstOrNull { it.id == station.backsightId }
                 builderRaw.append("ST,${station.name},,,,0.000,0.0000,0.0000\n")

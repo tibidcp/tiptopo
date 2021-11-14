@@ -140,23 +140,6 @@ fun MapView(mapViewModel: MapViewModel, onSetStation: () -> Unit) {
         is Resource.Success -> {
             val currentStation = stations.data.sortedByDescending { it.date }.first()
             MapBox(mapView, mapViewModel, currentStation, onSetStation)
-
-
-
-            Log.d("AllStations",
-                LatLng(
-                    55.67707036019693,
-                    37.571533160264714
-                ).toPoint().toString()
-            )
-            stations.data.forEach {
-                Log.d("AllStations",
-                    it.toString()
-                )
-            }
-
-
-
         }
     }
 }

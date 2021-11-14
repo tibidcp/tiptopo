@@ -207,7 +207,7 @@ fun Double.toRawDegrees(): String {
     return "$deg.${min.format()}${sec.format()}"
 }
 
-fun Double.format() = "%.3f".format(this)
+fun Double.format() = "%.3f".format(this).replace(",", ".")
 
 fun Int.format() = "%02d".format(this)
 
