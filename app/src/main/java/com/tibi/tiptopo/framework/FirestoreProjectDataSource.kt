@@ -43,6 +43,6 @@ class FirestoreProjectDataSource @Inject constructor(
         return Resource.Success(project)
     }
 
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun getAllProjects() = firestore.collection(path).getAll<Project>()
 }

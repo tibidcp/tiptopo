@@ -1,7 +1,15 @@
 package com.tibi.tiptopo.presentation.map
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.database.ContentObserver
+import android.database.Cursor
 import android.graphics.Color
+import android.os.Environment
+import android.os.FileObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,13 +26,8 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -33,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toFile
 import app.akexorcist.bluetotohspp.library.DeviceList
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -41,17 +45,13 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.ktx.awaitMap
 import com.tibi.tiptopo.R
 import com.tibi.tiptopo.data.Resource
-import com.tibi.tiptopo.domain.LineType
-import com.tibi.tiptopo.domain.Measurement
-import com.tibi.tiptopo.domain.PointType
-import com.tibi.tiptopo.domain.Project
-import com.tibi.tiptopo.domain.Station
+import com.tibi.tiptopo.domain.*
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
-import com.tibi.tiptopo.presentation.toPoint
 import com.tibi.tiptopo.presentation.toast
 import com.tibi.tiptopo.presentation.ui.ItemEntryInput
 import com.tibi.tiptopo.presentation.ui.ProgressCircular
 import kotlinx.coroutines.launch
+import java.io.File
 
 
 val colorList = listOf(
@@ -305,6 +305,7 @@ fun MapBox(
     onSetStation: () -> Unit,
 ) {
     DeviceList(mapViewModel)
+    OpenDirectory(mapViewModel)
     Box {
         MapViewContainer(map, mapViewModel, station)
         TopButtonsRow(mapViewModel, station, onSetStation)
@@ -430,6 +431,13 @@ fun TopButtonsRow(
                 Icon(
                     Icons.Default.Bluetooth,
                     stringResource(R.string.bluetooth_button_description)
+                )
+            }
+
+            Button(onClick = { mapViewModel.onOpenDirectory() }, Modifier.padding(8.dp)) {
+                Icon(
+                    Icons.Default.FolderOpen,
+                    ""
                 )
             }
         }
@@ -768,4 +776,78 @@ fun DrawingTools(mapViewModel: MapViewModel) {
             }
         }
     }
+}
+
+
+
+@Composable
+fun OpenDirectory(mapViewModel: MapViewModel) {
+//    val openDirectory = mapViewModel.openDirectory
+//    val currentFileUri = mapViewModel.currentFileUri
+//    val context = LocalContext.current
+//    val previousFileSize = mapViewModel.previousFileSize
+//
+//    val tick = mapViewModel.tick.observeAsState()
+//    Log.d("HHHHHH", tick.value.toString())
+//
+//
+//    if (currentFileUri == null) {
+//        val openDirectoryActivity =
+//            rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult())  {result ->
+//
+//                result.data?.data.also { uri ->
+//                    mapViewModel.onSetCurrentFileUri(uri)
+//                    uri?.path?.let {
+//                    }
+//
+//                }
+//            }
+//
+////        .apply {
+////        // Optionally, specify a URI for the directory that should be opened in
+////        // the system file picker when it loads.
+////        putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
+////    }
+//        if (openDirectory) {
+//            openDirectoryActivity.launch(
+//                Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+//                    addCategory(Intent.CATEGORY_OPENABLE)
+//                    type = "application/*"
+//                }
+//            )
+//        }
+//    }
+//
+//    if (currentFileUri != null) {
+//        val cursorQuery: Cursor? = context.contentResolver.query(
+//            currentFileUri, null, null, null, null, null)
+//
+//        cursorQuery?.use { cursor ->
+//            if (cursor.moveToFirst()) {
+//                val sizeIndex: Int = cursor.getColumnIndex(OpenableColumns.SIZE)
+//                val size = if (!cursor.isNull(sizeIndex)) cursor.getInt(sizeIndex) else 0
+//                if (previousFileSize < size) {
+//                    mapViewModel.onSetPreviousFileSize(size)
+//                    context.contentResolver.openInputStream(currentFileUri).use { inputStream ->
+//                        if (inputStream != null) {
+//                            val bufferedReader = inputStream.bufferedReader()
+//                            val sList = mutableListOf<String>()
+//                            var s: String?
+//                            while (bufferedReader.readLine().also { s = it } != null) {
+//                                s?.let { sList.add(it) }
+//                            }
+//
+//                            Log.d("HHHHHH", sList.last { !it.startsWith("GS,PNSBT")
+//                                    && it.startsWith("GS") })
+//
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//
+////        mapViewModel.onResetCurrentFileUri()
+//    }
+//    mapViewModel.onOpenDirectoryComplete()
 }

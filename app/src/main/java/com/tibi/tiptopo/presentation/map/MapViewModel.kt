@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.graphics.Color
+import android.net.Uri
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.getValue
@@ -31,8 +32,8 @@ import com.tibi.tiptopo.presentation.*
 import com.tibi.tiptopo.presentation.di.CurrentProjectId
 import com.tibi.tiptopo.presentation.di.CurrentTotalStation
 import com.tibi.tiptopo.presentation.login.FirebaseUserLiveData
-import com.tibi.tiptopo.presentation.parser.NikonRawParser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
@@ -81,6 +82,12 @@ class MapViewModel @Inject constructor(
     var currentMarker: Marker? by mutableStateOf(null)
         private set
 
+    var currentFileUri: Uri? by mutableStateOf(null)
+        private set
+
+    var previousFileSize = 0
+        private set
+
     var newMeasurement: Measurement? by mutableStateOf(null)
         private set
 
@@ -126,6 +133,9 @@ class MapViewModel @Inject constructor(
     var showDeviceList by mutableStateOf(false)
         private set
 
+    var openDirectory by mutableStateOf(false)
+        private set
+
     var currentPointObject by mutableStateOf(PointType.Point)
         private set
 
@@ -139,6 +149,15 @@ class MapViewModel @Inject constructor(
         private set
 
     private val refreshTrigger = MutableLiveData(Unit)
+
+    val tick = liveData {
+        var i = 0
+        repeat (Int.MAX_VALUE) {
+            emit(i)
+            delay(500)
+            i++
+        }
+    }
 
     val currentProject = liveData {
         emit(Resource.Loading())
@@ -168,6 +187,14 @@ class MapViewModel @Inject constructor(
             emit(Resource.Loading())
             stationRepository.getAllStations().collect { emit(it) }
         }
+    }
+
+    fun onSetPreviousFileSize(size: Int) {
+        previousFileSize = size
+    }
+
+    fun onResetPreviousFileSize() {
+        previousFileSize = 0
     }
 
     fun onUpdatePolyline() {
@@ -296,6 +323,14 @@ class MapViewModel @Inject constructor(
     fun onResetCurrentMarker() {
         onResetCurrentNote()
         currentMarker = null
+    }
+
+    fun onSetCurrentFileUri(uri: Uri?) {
+        currentFileUri = uri
+    }
+
+    fun onResetCurrentFileUri() {
+        currentFileUri = null
     }
 
     object DateAdapter {
@@ -545,6 +580,14 @@ class MapViewModel @Inject constructor(
         if (result.resultCode == Activity.RESULT_OK) {
             bluetooth.connect(result.data)
         }
+    }
+
+    fun onOpenDirectory() {
+        openDirectory = true
+    }
+
+    fun onOpenDirectoryComplete() {
+        openDirectory = false
     }
 
     fun getNewNumber(): Int {

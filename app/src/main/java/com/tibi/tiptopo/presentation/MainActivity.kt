@@ -18,10 +18,11 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var bluetooth: BluetoothSPP
 
-    @ExperimentalMaterialApi
-    @ExperimentalFoundationApi
-    @ExperimentalAnimationApi
-    @ExperimentalComposeUiApi
+    @OptIn(ExperimentalMaterialApi::class,
+        androidx.compose.foundation.ExperimentalFoundationApi::class,
+        androidx.compose.animation.ExperimentalAnimationApi::class,
+        androidx.compose.ui.ExperimentalComposeUiApi::class
+    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

@@ -47,7 +47,7 @@ class FirestoreMeasurementDataSource @Inject constructor(
         return Resource.Success(measurement)
     }
 
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun getAllMeasurements() = firestore.collection(path).getAll<Measurement>()
 
     override suspend fun deleteMeasurement(measurementId: String) {

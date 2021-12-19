@@ -46,7 +46,7 @@ class FirestoreLineDataSource @Inject constructor(
         return Resource.Success(line)
     }
 
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun getAllLines() = firestore.collection(path).getAll<Line>()
 
     override suspend fun deleteLine(lineId: String) {

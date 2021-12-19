@@ -49,10 +49,10 @@ class FirestoreStationDataSource @Inject constructor(
         return Resource.Success(station)
     }
 
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun getAllStations() = firestore.collection(path).getAll<Station>()
 
-    @ExperimentalCoroutinesApi
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun getLastStation(): Flow<Resource<Station>> = callbackFlow {
         val result = firestore
             .collection(path)
